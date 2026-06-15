@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
-import { BrandBackground } from "@/components/brand/BrandBackground";
 import { CategoryCard } from "@/components/recommendations/CategoryCard";
 import { getCurrentProfile, getCategoryCounts, CATEGORIES } from "@/lib/actions";
 import { getGreeting } from "@/lib/constants";
@@ -40,74 +39,67 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="relative min-h-[70vh] overflow-hidden">
-        <BrandBackground variant="subtle" fixed={false} />
-        <div className="relative z-10 flex h-64 items-center justify-center">
-          <div className="animate-pulse text-warm-gray-light">Loading...</div>
-        </div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="animate-pulse text-warm-gray-light">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-[70vh] overflow-hidden">
-      <BrandBackground variant="subtle" fixed={false} />
+    <>
+      <div className="px-5 pt-8 pb-4">
+        <p className="text-sm text-warm-gray">
+          {getGreeting()}
+          {profile ? `, ${profile.first_name}` : ""}
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-charcoal">
+          Find the people your people trust.
+        </h1>
+      </div>
 
-      <div className="relative z-10">
-        <div className="px-5 pt-8 pb-4">
-          <p className="text-sm text-warm-gray">
-            {getGreeting()}
-            {profile ? `, ${profile.first_name}` : ""}
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-charcoal">
-            Find the people your people trust.
-          </h1>
-        </div>
-
-        <div className="mb-4 px-5">
-          <div className="relative">
-            <Search
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-gray-light"
-            />
-            <input
-              type="text"
-              placeholder="Search categories..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-charcoal/10 bg-white/90 py-3 pl-11 pr-4 text-charcoal placeholder:text-warm-gray-light backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sage/40"
-            />
-          </div>
-        </div>
-
-        <div className="px-5">
-          <div className="grid grid-cols-2 gap-3">
-            {filtered.map((cat) => (
-              <CategoryCard
-                key={cat.id}
-                category={cat.id}
-                count={counts[cat.id] || 0}
-                onClick={() => handleCategoryClick(cat.id)}
-              />
-            ))}
-          </div>
-
-          {filtered.length === 0 && (
-            <p className="py-12 text-center text-warm-gray">
-              No categories match your search.
-            </p>
-          )}
-
-          {Object.keys(counts).length === 0 && !search && (
-            <div className="mt-8 px-4 text-center">
-              <p className="text-sm leading-relaxed text-warm-gray">
-                Add friends and share your recommendations to see trusted providers
-                from your network.
-              </p>
-            </div>
-          )}
+      <div className="mb-4 px-5">
+        <div className="relative">
+          <Search
+            size={18}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-gray-light"
+          />
+          <input
+            type="text"
+            placeholder="Search categories..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-charcoal/10 bg-white/80 py-3 pl-11 pr-4 text-charcoal placeholder:text-warm-gray-light backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sage/40"
+          />
         </div>
       </div>
-    </div>
+
+      <div className="px-5">
+        <div className="grid grid-cols-2 gap-3">
+          {filtered.map((cat) => (
+            <CategoryCard
+              key={cat.id}
+              category={cat.id}
+              count={counts[cat.id] || 0}
+              onClick={() => handleCategoryClick(cat.id)}
+            />
+          ))}
+        </div>
+
+        {filtered.length === 0 && (
+          <p className="py-12 text-center text-warm-gray">
+            No categories match your search.
+          </p>
+        )}
+
+        {Object.keys(counts).length === 0 && !search && (
+          <div className="mt-8 px-4 text-center">
+            <p className="text-sm leading-relaxed text-warm-gray">
+              Add friends and share your recommendations to see trusted providers
+              from your network.
+            </p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

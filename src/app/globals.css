@@ -41,6 +41,32 @@
     font-family: var(--font-cubao);
   }
 
+  .wom-typography-row {
+    font-family: var(--font-cubao);
+    color: var(--color-brand-coral);
+    line-height: 0.76;
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+    font-size: clamp(9rem, 34vw, 22rem);
+  }
+
+  .wom-typography-auth .wom-typography-row {
+    opacity: 0.38;
+  }
+
+  .wom-typography-app .wom-typography-row {
+    opacity: 0.065;
+  }
+
+  .glass-card {
+    border-radius: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 12px 48px rgba(45, 42, 38, 0.07);
+  }
+
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }

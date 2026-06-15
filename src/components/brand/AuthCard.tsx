@@ -5,17 +5,9 @@ interface AuthCardProps {
   className?: string;
 }
 
-/** Elevated glass card for auth and onboarding forms */
+/** Frosted glass card for auth and onboarding forms */
 export function AuthCard({ children, className }: AuthCardProps) {
   return (
-    <div
-      className={cn(
-        "rounded-3xl border border-charcoal/[0.06] bg-white p-8",
-        "shadow-[0_20px_60px_rgba(45,42,38,0.08)]",
-        className
-      )}
-    >
-      {children}
-    </div>
+    <div className={cn("glass-card p-8 sm:p-10", className)}>{children}</div>
   );
 }
