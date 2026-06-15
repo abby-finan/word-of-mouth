@@ -1,12 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getSupabaseConfigStatus } from "@/lib/auth-errors";
-import { PhoneAuthForm } from "@/components/auth/PhoneAuthForm";
+import { createClient } from "@/lib/supabase/client";
+import { updateProfile } from "@/lib/actions";
+import {
+  formatAuthError,
+  getSupabaseConfigStatus,
+  logAuthError,
+} from "@/lib/auth-errors";
+import { normalizePhoneToE164 } from "@/lib/phone";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [firstName, setFirstName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [loading, setLoading] = useState(false);
   const [configIssues, setConfigIssues] = useState<string[]>([]);
 
   useEffect(() => {
@@ -15,6 +31,73 @@ export default function SignupPage() {
       setConfigIssues(config.issues);
     }
   }, []);
+
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setInfo("");
+    setLoading(true);
+
+    const config = getSupabaseConfigStatus();
+    if (!config.ok) {
+      setError(config.issues.join(" "));
+      setLoading(false);
+      return;
+    }
+
+    const trimmedPhone = phoneNumber.trim();
+    let normalizedPhone: string | null = null;
+
+    if (trimmedPhone) {
+      normalizedPhone = normalizePhoneToE164(trimmedPhone);
+      if (!normalizedPhone) {
+        setError("Enter a valid phone number or leave it blank.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    try {
+      const supabase = createClient();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: { first_name: firstName.trim() },
+        },
+      });
+
+      if (signUpError) {
+        logAuthError("signUp failed", signUpError);
+        setError(formatAuthError(signUpError));
+        return;
+      }
+
+      if (!data.user) {
+        setError("Signup failed — no user was returned.");
+        return;
+      }
+
+      if (!data.session) {
+        setInfo(
+          "Account created! Check your email to confirm your address, then sign in."
+        );
+        return;
+      }
+
+      if (normalizedPhone) {
+        await updateProfile({ phone_number: normalizedPhone });
+      }
+
+      router.push("/home");
+      router.refresh();
+    } catch (err) {
+      logAuthError("signUp threw exception", err);
+      setError(formatAuthError(err));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-cream flex flex-col items-center justify-center px-6 safe-top safe-bottom">
@@ -39,12 +122,66 @@ export default function SignupPage() {
           </div>
         )}
 
-        <PhoneAuthForm
-          submitLabel="Send code"
-          showFirstName
-          firstName={firstName}
-          onFirstNameChange={setFirstName}
-        />
+        <form onSubmit={handleSignup} className="space-y-4">
+          <Input
+            label="First name"
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Sarah"
+            required
+            autoComplete="given-name"
+          />
+          <Input
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+            autoComplete="email"
+          />
+          <Input
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="At least 6 characters"
+            required
+            minLength={6}
+            autoComplete="new-password"
+          />
+          <Input
+            label="Phone number (optional)"
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            placeholder="(555) 123-4567"
+            autoComplete="tel"
+          />
+          <p className="text-xs text-warm-gray-light -mt-2">
+            Optional — helps friends find you. Not used for login.
+          </p>
+
+          {error && (
+            <div
+              role="alert"
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {error}
+            </div>
+          )}
+
+          {info && (
+            <div className="rounded-xl border border-sage/30 bg-sage-light px-4 py-3 text-sm text-charcoal">
+              {info}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" loading={loading}>
+            Create account
+          </Button>
+        </form>
 
         <p className="mt-6 text-center text-sm text-warm-gray">
           Already have an account?{" "}

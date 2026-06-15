@@ -20,6 +20,7 @@ import {
 } from "@/lib/actions";
 import { getCategoryInfo } from "@/lib/constants";
 import { formatProfileLocation } from "@/lib/location";
+import { normalizePhoneToE164 } from "@/lib/phone";
 import { Profile, Recommendation, RecommendationCategory } from "@/types/database";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,7 @@ export default function ProfilePage() {
   const [profileName, setProfileName] = useState("");
   const [profileCity, setProfileCity] = useState("");
   const [profileNeighborhood, setProfileNeighborhood] = useState("");
+  const [profilePhoneNumber, setProfilePhoneNumber] = useState("");
 
   async function loadData() {
     const [p, r] = await Promise.all([
@@ -56,6 +58,7 @@ export default function ProfilePage() {
       setProfileName(p.first_name);
       setProfileCity(p.city || "");
       setProfileNeighborhood(p.neighborhood || "");
+      setProfilePhoneNumber(p.phone_number || "");
     }
     setLoading(false);
   }
@@ -99,10 +102,25 @@ export default function ProfilePage() {
   async function handleSaveProfile() {
     setProfileError("");
 
+    const trimmedPhone = profilePhoneNumber.trim();
+    let phoneToSave: string | undefined;
+
+    if (trimmedPhone) {
+      const normalized = normalizePhoneToE164(trimmedPhone);
+      if (!normalized) {
+        setProfileError("Enter a valid phone number or leave it blank.");
+        return;
+      }
+      phoneToSave = normalized;
+    } else {
+      phoneToSave = "";
+    }
+
     const { error } = await updateProfile({
       first_name: profileName.trim(),
       city: profileCity.trim(),
       neighborhood: profileNeighborhood.trim(),
+      phone_number: phoneToSave,
     });
 
     if (error) {
@@ -206,6 +224,14 @@ export default function ProfilePage() {
                     onChange={(e) => setProfileCity(e.target.value)}
                     placeholder="City (optional)"
                   />
+                  <Input
+                    label="Phone number (optional)"
+                    type="tel"
+                    value={profilePhoneNumber}
+                    onChange={(e) => setProfilePhoneNumber(e.target.value)}
+                    placeholder="(555) 123-4567"
+                    autoComplete="tel"
+                  />
                   {profileError && (
                     <p className="text-sm text-red-500">{profileError}</p>
                   )}
@@ -222,6 +248,7 @@ export default function ProfilePage() {
                         setProfileName(profile?.first_name || "");
                         setProfileCity(profile?.city || "");
                         setProfileNeighborhood(profile?.neighborhood || "");
+                        setProfilePhoneNumber(profile?.phone_number || "");
                       }}
                     >
                       Cancel
@@ -235,6 +262,9 @@ export default function ProfilePage() {
                   </h1>
                   {locationLabel && (
                     <p className="text-sm text-warm-gray">{locationLabel}</p>
+                  )}
+                  {profile?.phone_number && (
+                    <p className="text-sm text-warm-gray">{profile.phone_number}</p>
                   )}
                   <button
                     onClick={() => setEditingProfile(true)}

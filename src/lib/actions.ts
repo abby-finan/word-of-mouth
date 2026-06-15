@@ -236,36 +236,6 @@ export async function updateProfile(data: {
   return { error: error?.message };
 }
 
-/** Sync auth phone (and optional name) to profiles after OTP login — non-breaking. */
-export async function syncProfileAfterAuth(options?: { first_name?: string }) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const updates: Record<string, string | null> = {};
-
-  if (user.phone) {
-    updates.phone_number = user.phone;
-  }
-
-  if (options?.first_name?.trim()) {
-    updates.first_name = options.first_name.trim();
-  }
-
-  if (Object.keys(updates).length === 0) {
-    return {};
-  }
-
-  const { error } = await supabase
-    .from("profiles")
-    .update(updates)
-    .eq("id", user.id);
-
-  return { error: error?.message };
-}
-
 const AVATAR_BUCKET = "avatars";
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];

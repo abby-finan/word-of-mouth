@@ -83,11 +83,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, first_name, phone_number)
+  INSERT INTO public.profiles (id, first_name)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'first_name', 'New User'),
-    NEW.phone
+    COALESCE(NEW.raw_user_meta_data->>'first_name', 'New User')
   );
   RETURN NEW;
 END;

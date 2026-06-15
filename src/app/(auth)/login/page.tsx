@@ -1,19 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getSupabaseConfigStatus } from "@/lib/auth-errors";
-import { PhoneAuthForm } from "@/components/auth/PhoneAuthForm";
+import { createClient } from "@/lib/supabase/client";
+import { formatAuthError, logAuthError } from "@/lib/auth-errors";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 export default function LoginPage() {
-  const [configIssues, setConfigIssues] = useState<string[]>([]);
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const config = getSupabaseConfigStatus();
-    if (!config.ok) {
-      setConfigIssues(config.issues);
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (signInError) {
+        logAuthError("signIn failed", signInError);
+        setError(formatAuthError(signInError));
+        return;
+      }
+
+      router.push("/home");
+      router.refresh();
+    } catch (err) {
+      logAuthError("signIn threw exception", err);
+      setError(formatAuthError(err));
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }
 
   return (
     <div className="min-h-screen bg-cream flex flex-col items-center justify-center px-6 safe-top safe-bottom">
@@ -27,23 +55,44 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {configIssues.length > 0 && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <p className="font-medium">Configuration problem</p>
-            <ul className="mt-1 list-disc pl-4">
-              {configIssues.map((issue) => (
-                <li key={issue}>{issue}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <form onSubmit={handleLogin} className="space-y-4">
+          <Input
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+            autoComplete="email"
+          />
+          <Input
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            autoComplete="current-password"
+          />
 
-        <PhoneAuthForm submitLabel="Send code" />
+          {error && (
+            <div
+              role="alert"
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {error}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" loading={loading}>
+            Sign in
+          </Button>
+        </form>
 
         <p className="mt-6 text-center text-sm text-warm-gray">
-          New here?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/signup" className="text-sage font-medium hover:underline">
-            Create an account
+            Sign up
           </Link>
         </p>
       </div>
