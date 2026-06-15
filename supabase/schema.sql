@@ -141,6 +141,28 @@ CREATE POLICY "Users can view friends profiles"
     )
   );
 
+CREATE POLICY "Users can view pending request sender profiles"
+  ON profiles FOR SELECT
+  USING (
+    id IN (
+      SELECT requester_id
+      FROM friendships
+      WHERE addressee_id = auth.uid()
+        AND status = 'pending'
+    )
+  );
+
+CREATE POLICY "Users can view pending request recipient profiles"
+  ON profiles FOR SELECT
+  USING (
+    id IN (
+      SELECT addressee_id
+      FROM friendships
+      WHERE requester_id = auth.uid()
+        AND status = 'pending'
+    )
+  );
+
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE
   USING (auth.uid() = id);

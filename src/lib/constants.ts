@@ -108,7 +108,10 @@ export function getGreeting(): string {
 }
 
 export function getInitials(name: string): string {
-  return name
+  const trimmed = name?.trim();
+  if (!trimmed) return "?";
+
+  return trimmed
     .split(" ")
     .map((n) => n[0])
     .join("")
