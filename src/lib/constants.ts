@@ -17,6 +17,8 @@ export interface CategoryInfo {
   id: RecommendationCategory;
   label: string;
   pluralLabel: string;
+  /** Short subtitle shown on category detail pages */
+  description?: string;
   icon: LucideIcon;
   color: string;
   bgColor: string;
@@ -98,7 +100,9 @@ export const CATEGORIES: CategoryInfo[] = [
   {
     id: "other",
     label: "Other",
-    pluralLabel: "Other",
+    pluralLabel: "Other Services",
+    description:
+      "Other home & personal services recommended by friends",
     icon: MoreHorizontal,
     color: "text-stone-600",
     bgColor: "bg-stone-50",
@@ -107,6 +111,18 @@ export const CATEGORIES: CategoryInfo[] = [
 
 export function getCategoryInfo(category: RecommendationCategory): CategoryInfo {
   return CATEGORIES.find((c) => c.id === category) ?? CATEGORIES[0];
+}
+
+export function getCategoryFriendsEmptyState(
+  category: RecommendationCategory
+): string {
+  if (category === "other") {
+    return "No friends have shared recommendations in additional services yet. Ask friends to share pest control, movers, house cleaners, and other trusted providers.";
+  }
+
+  const info = getCategoryInfo(category);
+  const label = info.label.toLowerCase();
+  return `No friends have shared a ${label} yet. Ask your friends to add their trusted ${label}!`;
 }
 
 export function getGreeting(): string {
