@@ -20,7 +20,7 @@ import {
 } from "@/lib/actions";
 import { getCategoryInfo } from "@/lib/constants";
 import { formatProfileLocation } from "@/lib/location";
-import { normalizePhoneToE164 } from "@/lib/phone";
+import { normalizePhoneNumber } from "@/lib/phone";
 import { Profile, Recommendation, RecommendationCategory } from "@/types/database";
 import { cn } from "@/lib/utils";
 
@@ -106,7 +106,7 @@ export default function ProfilePage() {
     let phoneToSave: string | undefined;
 
     if (trimmedPhone) {
-      const normalized = normalizePhoneToE164(trimmedPhone);
+      const normalized = normalizePhoneNumber(trimmedPhone);
       if (!normalized) {
         setProfileError("Enter a valid phone number or leave it blank.");
         return;

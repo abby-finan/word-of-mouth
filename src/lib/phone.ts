@@ -1,5 +1,8 @@
-/** Normalize user input to E.164 for Supabase phone auth (US-focused). */
-export function normalizePhoneToE164(input: string): string | null {
+/**
+ * Normalize user input to E.164 (US-focused).
+ * Strips spaces, dashes, parentheses; assumes +1 for 10-digit US numbers.
+ */
+export function normalizePhoneNumber(input: string): string | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
 
@@ -16,6 +19,9 @@ export function normalizePhoneToE164(input: string): string | null {
 
   return null;
 }
+
+/** @deprecated Use normalizePhoneNumber */
+export const normalizePhoneToE164 = normalizePhoneNumber;
 
 export function formatPhoneInputDisplay(input: string): string {
   const digits = input.replace(/\D/g, "").slice(0, 11);
@@ -36,4 +42,17 @@ export function isEmailQuery(query: string): boolean {
 export function isLikelyPhoneQuery(query: string): boolean {
   const digits = query.replace(/\D/g, "");
   return digits.length >= 10 && !isEmailQuery(query);
+}
+
+/** Prepare a friend-search query: E.164 for phones, lowercase email otherwise. */
+export function prepareContactSearchQuery(query: string): string {
+  const trimmed = query.trim();
+  if (!trimmed) return trimmed;
+
+  if (isEmailQuery(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+
+  const normalized = normalizePhoneNumber(trimmed);
+  return normalized ?? trimmed;
 }

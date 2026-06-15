@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { prepareContactSearchQuery } from "@/lib/phone";
 import { Profile, Friendship, Recommendation } from "@/types/database";
 
 const UNKNOWN_PROFILE: Profile = {
@@ -191,16 +192,18 @@ export async function searchUserByContact(
   const trimmed = query.trim();
   if (!trimmed) return null;
 
+  const searchQuery = prepareContactSearchQuery(trimmed);
+
   const supabase = createClient();
   const { data, error } = await supabase.rpc("search_users_by_contact", {
-    search_query: trimmed,
+    search_query: searchQuery,
   });
 
   if (error) {
     console.error("[WOM Friends] search_users_by_contact error:", error);
 
     if (trimmed.includes("@")) {
-      return searchUserByEmail(trimmed);
+      return searchUserByEmail(searchQuery);
     }
 
     return null;
@@ -208,7 +211,7 @@ export async function searchUserByContact(
 
   if (!data || data.length === 0) {
     if (trimmed.includes("@")) {
-      return searchUserByEmail(trimmed);
+      return searchUserByEmail(searchQuery);
     }
     return null;
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { normalizePhoneNumber } from "@/lib/phone";
 import { Profile, Recommendation, RecommendationCategory } from "@/types/database";
 import { TopRecommendation } from "@/lib/top-recommendations";
 import { CATEGORIES } from "@/lib/constants";
@@ -225,7 +226,16 @@ export async function updateProfile(data: {
     updates.avatar_url = data.avatar_url || null;
   }
   if (data.phone_number !== undefined) {
-    updates.phone_number = data.phone_number.trim() || null;
+    const trimmed = data.phone_number.trim();
+    if (!trimmed) {
+      updates.phone_number = null;
+    } else {
+      const normalized = normalizePhoneNumber(trimmed);
+      if (!normalized) {
+        return { error: "Enter a valid phone number." };
+      }
+      updates.phone_number = normalized;
+    }
   }
 
   const { error } = await supabase

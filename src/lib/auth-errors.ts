@@ -2,12 +2,28 @@
  * Extract a human-readable message from Supabase Auth errors.
  * AuthError often has non-enumerable fields, so JSON.stringify(error) => "{}"
  */
+function isRateLimitAuthError(message: string, record: Record<string, unknown>): boolean {
+  const lower = message.toLowerCase();
+  const code = String(record.code ?? record.error_code ?? record.status ?? "");
+
+  return (
+    lower.includes("rate limit") ||
+    lower.includes("too many requests") ||
+    lower.includes("email rate limit") ||
+    code === "429" ||
+    code === "over_email_send_rate_limit"
+  );
+}
+
 export function formatAuthError(error: unknown): string {
   if (!error) return "An unknown error occurred.";
 
   if (typeof error === "string") return error;
 
   if (error instanceof Error && error.message) {
+    if (isRateLimitAuthError(error.message, error as unknown as Record<string, unknown>)) {
+      return "Too many signups. Please wait a few minutes and try again.";
+    }
     return error.message;
   }
 
@@ -15,6 +31,9 @@ export function formatAuthError(error: unknown): string {
     const record = error as Record<string, unknown>;
 
     if (typeof record.message === "string" && record.message) {
+      if (isRateLimitAuthError(record.message, record)) {
+        return "Too many signups. Please wait a few minutes and try again.";
+      }
       return record.message;
     }
 

@@ -83,10 +83,11 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, first_name)
+  INSERT INTO public.profiles (id, first_name, phone_number)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'first_name', 'New User')
+    COALESCE(NEW.raw_user_meta_data->>'first_name', 'New User'),
+    NULLIF(trim(NEW.raw_user_meta_data->>'phone_number'), '')
   );
   RETURN NEW;
 END;
@@ -255,6 +256,23 @@ AS $$
   SELECT NULLIF(regexp_replace(coalesce(phone, ''), '\D', '', 'g'), '');
 $$;
 
+CREATE OR REPLACE FUNCTION public.normalize_phone_digits_for_match(phone TEXT)
+RETURNS TEXT
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  WITH digits AS (
+    SELECT NULLIF(regexp_replace(coalesce(phone, ''), '\D', '', 'g'), '') AS d
+  )
+  SELECT CASE
+    WHEN d IS NULL THEN NULL
+    WHEN length(d) = 11 AND left(d, 1) = '1' THEN substring(d FROM 2)
+    WHEN length(d) = 10 THEN d
+    ELSE d
+  END
+  FROM digits;
+$$;
+
 CREATE OR REPLACE FUNCTION public.search_users_by_contact(search_query TEXT)
 RETURNS TABLE (
   id UUID,
@@ -270,7 +288,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_query TEXT := trim(search_query);
-  v_digits TEXT;
+  v_match_digits TEXT;
 BEGIN
   IF v_query IS NULL OR v_query = '' OR auth.uid() IS NULL THEN
     RETURN;
@@ -286,20 +304,20 @@ BEGIN
     RETURN;
   END IF;
 
-  v_digits := public.normalize_phone_digits(v_query);
+  v_match_digits := public.normalize_phone_digits_for_match(v_query);
 
-  IF v_digits IS NULL OR length(v_digits) < 10 THEN
+  IF v_match_digits IS NULL OR length(v_match_digits) < 10 THEN
     RETURN;
   END IF;
 
   RETURN QUERY
   SELECT p.id, p.first_name, p.city, p.neighborhood, p.avatar_url, p.phone_number
   FROM public.profiles p
-  INNER JOIN auth.users u ON u.id = p.id
+  LEFT JOIN auth.users u ON u.id = p.id
   WHERE p.id <> auth.uid()
     AND (
-      public.normalize_phone_digits(p.phone_number) = v_digits
-      OR public.normalize_phone_digits(u.phone) = v_digits
+      public.normalize_phone_digits_for_match(p.phone_number) = v_match_digits
+      OR public.normalize_phone_digits_for_match(u.phone) = v_match_digits
     );
 END;
 $$;
