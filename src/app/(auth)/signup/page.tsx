@@ -114,7 +114,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-cream">
+    <div className="relative min-h-screen overflow-hidden bg-white">
       <BrandBackground variant="auth" />
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-10 safe-top safe-bottom">

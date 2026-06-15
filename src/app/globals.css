@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Cubao";
+  src: url("/fonts/Cubao-Free-Wide.otf") format("opentype");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-cream: #faf9f7;
   --color-cream-dark: #f5f3ef;
@@ -12,7 +20,9 @@
   --color-blush-light: #f5ebe8;
   --color-sand: #e8e2d9;
   --color-terracotta: #c9a99a;
+  --color-brand-coral: #e08368;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-cubao: "Cubao", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -27,6 +37,10 @@
 }
 
 @layer utilities {
+  .font-cubao {
+    font-family: var(--font-cubao);
+  }
+
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }

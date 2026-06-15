@@ -10,8 +10,8 @@ export function AuthCard({ children, className }: AuthCardProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/70 bg-white/75 p-8 backdrop-blur-xl",
-        "shadow-[0_12px_40px_rgba(45,42,38,0.07)]",
+        "rounded-3xl border border-charcoal/[0.06] bg-white p-8",
+        "shadow-[0_20px_60px_rgba(45,42,38,0.08)]",
         className
       )}
     >
