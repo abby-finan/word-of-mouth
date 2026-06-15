@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { cubao } from "@/lib/fonts/cubao";
 
 export type BackgroundTypographyVariant = "auth" | "app";
 
@@ -37,6 +38,7 @@ export function BackgroundTypography({
     >
       <div
         className={cn(
+          cubao.className,
           "flex h-full min-h-screen w-full flex-col items-center justify-center",
           variant === "auth" ? "wom-typography-auth" : "wom-typography-app"
         )}
