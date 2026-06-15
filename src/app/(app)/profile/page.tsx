@@ -293,18 +293,13 @@ export default function ProfilePage() {
             <h3 className="font-medium text-charcoal">
               {getCategoryInfo(editingCategory).label}
             </h3>
-            {getCategoryInfo(editingCategory).description && (
-              <p className="text-xs text-warm-gray -mt-1">
-                {getCategoryInfo(editingCategory).description}
-              </p>
-            )}
             <Input
               label="Provider name"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               placeholder={
                 editingCategory === "other"
-                  ? "e.g. pest control, movers, house cleaner"
+                  ? "Your trusted provider"
                   : "Mike's Plumbing"
               }
               required

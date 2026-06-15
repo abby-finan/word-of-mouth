@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/Input";
 import {
   getFriends,
   getPendingRequests,
-  getExistingFriendship,
   searchUserByContact,
   sendFriendRequest,
   respondToFriendRequest,
@@ -69,35 +68,17 @@ export default function FriendsPage() {
       const user = await searchUserByContact(contactQuery.trim());
       if (!user) {
         setAddError("No user found with that phone number or email.");
-        return;
-      }
-
-      const name = displayName(user, "this person");
-      const existing = await getExistingFriendship(user.id);
-
-      if (existing === "accepted") {
-        setAddSuccess(`You're already friends with ${name}!`);
-        return;
-      }
-
-      if (existing === "pending") {
-        setAddSuccess(`${name} is already added as your friend!`);
+        setAdding(false);
         return;
       }
 
       const { error } = await sendFriendRequest(user.id);
-      if (error === "already_friends") {
-        setAddSuccess(`You're already friends with ${name}!`);
-      } else if (error === "already_pending") {
-        setAddSuccess(`${name} is already added as your friend!`);
-      } else if (error) {
+      if (error) {
         setAddError(
-          error.includes("duplicate")
-            ? `${name} is already added as your friend!`
-            : error
+          error.includes("duplicate") ? "Friend request already sent." : error
         );
       } else {
-        setAddSuccess(`Friend request sent to ${name}!`);
+        setAddSuccess(`Friend request sent to ${displayName(user, "your friend")}!`);
         setContactQuery("");
       }
     } catch (error) {

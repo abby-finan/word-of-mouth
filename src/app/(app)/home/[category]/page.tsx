@@ -13,7 +13,7 @@ import {
   saveRecommendation,
   unsaveRecommendation,
 } from "@/lib/actions";
-import { getCategoryInfo, getCategoryFriendsEmptyState } from "@/lib/constants";
+import { getCategoryInfo } from "@/lib/constants";
 import { formatProfileLocation } from "@/lib/location";
 import { TopRecommendation } from "@/lib/top-recommendations";
 import { Recommendation, Profile, RecommendationCategory } from "@/types/database";
@@ -84,10 +84,7 @@ export default function CategoryDetailPage() {
             <h1 className="text-2xl font-semibold text-charcoal tracking-tight">
               {info.pluralLabel}
             </h1>
-            {info.description && (
-              <p className="text-sm text-warm-gray mt-0.5">{info.description}</p>
-            )}
-            <p className="text-sm text-warm-gray mt-0.5">
+            <p className="text-sm text-warm-gray">
               {recommendations.length} recommendation
               {recommendations.length !== 1 ? "s" : ""} from friends
             </p>
@@ -109,7 +106,8 @@ export default function CategoryDetailPage() {
 
               {recommendations.length === 0 ? (
                 <p className="text-sm text-warm-gray leading-relaxed text-center py-8 px-2">
-                  {getCategoryFriendsEmptyState(category)}
+                  No friends have shared a {info.label.toLowerCase()} yet. Ask
+                  your friends to add their trusted {info.label.toLowerCase()}!
                 </p>
               ) : (
                 <div className="space-y-3">
