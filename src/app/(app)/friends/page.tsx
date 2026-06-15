@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/Input";
 import {
   getFriends,
   getPendingRequests,
-  searchUserByEmail,
+  searchUserByContact,
   sendFriendRequest,
   respondToFriendRequest,
 } from "@/lib/friends";
@@ -30,7 +30,7 @@ export default function FriendsPage() {
     (Friendship & { requester: Profile })[]
   >([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [email, setEmail] = useState("");
+  const [contactQuery, setContactQuery] = useState("");
   const [addError, setAddError] = useState("");
   const [addSuccess, setAddSuccess] = useState("");
   const [loadError, setLoadError] = useState("");
@@ -65,9 +65,9 @@ export default function FriendsPage() {
     setAdding(true);
 
     try {
-      const user = await searchUserByEmail(email.trim());
+      const user = await searchUserByContact(contactQuery.trim());
       if (!user) {
-        setAddError("No user found with that email.");
+        setAddError("No user found with that phone number or email.");
         setAdding(false);
         return;
       }
@@ -79,7 +79,7 @@ export default function FriendsPage() {
         );
       } else {
         setAddSuccess(`Friend request sent to ${displayName(user, "your friend")}!`);
-        setEmail("");
+        setContactQuery("");
       }
     } catch (error) {
       console.error("[WOM Friends] handleAddFriend error:", error);
@@ -139,11 +139,11 @@ export default function FriendsPage() {
           <Card className="p-4">
             <form onSubmit={handleAddFriend} className="space-y-3">
               <Input
-                label="Friend's email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="friend@example.com"
+                label="Phone number or email"
+                type="text"
+                value={contactQuery}
+                onChange={(e) => setContactQuery(e.target.value)}
+                placeholder="(555) 123-4567 or friend@example.com"
                 required
               />
               {addError && (

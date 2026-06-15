@@ -8,6 +8,7 @@ const UNKNOWN_PROFILE: Profile = {
   first_name: "Unknown user",
   city: null,
   neighborhood: null,
+  phone_number: null,
   avatar_url: null,
   created_at: "",
   updated_at: "",
@@ -179,6 +180,39 @@ export async function searchUserByEmail(
   });
 
   if (error || !data || data.length === 0) return null;
+  const profile = data[0] as Profile;
+  return isValidProfile(profile) ? profile : null;
+}
+
+/** Find a user by phone (primary) or email (fallback). Returns profiles.id for friend requests. */
+export async function searchUserByContact(
+  query: string
+): Promise<Profile | null> {
+  const trimmed = query.trim();
+  if (!trimmed) return null;
+
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("search_users_by_contact", {
+    search_query: trimmed,
+  });
+
+  if (error) {
+    console.error("[WOM Friends] search_users_by_contact error:", error);
+
+    if (trimmed.includes("@")) {
+      return searchUserByEmail(trimmed);
+    }
+
+    return null;
+  }
+
+  if (!data || data.length === 0) {
+    if (trimmed.includes("@")) {
+      return searchUserByEmail(trimmed);
+    }
+    return null;
+  }
+
   const profile = data[0] as Profile;
   return isValidProfile(profile) ? profile : null;
 }

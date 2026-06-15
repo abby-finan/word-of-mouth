@@ -17,6 +17,7 @@ export interface Profile {
   first_name: string;
   city: string | null;
   neighborhood: string | null;
+  phone_number: string | null;
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
@@ -112,6 +113,13 @@ export interface Database {
       search_users_by_email: {
         Args: { search_email: string };
         Returns: Pick<Profile, "id" | "first_name" | "city" | "neighborhood" | "avatar_url">[];
+      };
+      search_users_by_contact: {
+        Args: { search_query: string };
+        Returns: Pick<
+          Profile,
+          "id" | "first_name" | "city" | "neighborhood" | "avatar_url" | "phone_number"
+        >[];
       };
     };
   };

@@ -10,6 +10,7 @@ CREATE TABLE profiles (
   first_name TEXT NOT NULL,
   city TEXT,
   neighborhood TEXT,
+  phone_number TEXT,
   avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
@@ -82,10 +83,11 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, first_name)
+  INSERT INTO public.profiles (id, first_name, phone_number)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'first_name', 'New User')
+    COALESCE(NEW.raw_user_meta_data->>'first_name', 'New User'),
+    NEW.phone
   );
   RETURN NEW;
 END;
@@ -245,6 +247,65 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION search_users_by_email(TEXT) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.normalize_phone_digits(phone TEXT)
+RETURNS TEXT
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT NULLIF(regexp_replace(coalesce(phone, ''), '\D', '', 'g'), '');
+$$;
+
+CREATE OR REPLACE FUNCTION public.search_users_by_contact(search_query TEXT)
+RETURNS TABLE (
+  id UUID,
+  first_name TEXT,
+  city TEXT,
+  neighborhood TEXT,
+  avatar_url TEXT,
+  phone_number TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_query TEXT := trim(search_query);
+  v_digits TEXT;
+BEGIN
+  IF v_query IS NULL OR v_query = '' OR auth.uid() IS NULL THEN
+    RETURN;
+  END IF;
+
+  IF position('@' IN v_query) > 0 THEN
+    RETURN QUERY
+    SELECT p.id, p.first_name, p.city, p.neighborhood, p.avatar_url, p.phone_number
+    FROM public.profiles p
+    INNER JOIN auth.users u ON u.id = p.id
+    WHERE lower(u.email) = lower(v_query)
+      AND p.id <> auth.uid();
+    RETURN;
+  END IF;
+
+  v_digits := public.normalize_phone_digits(v_query);
+
+  IF v_digits IS NULL OR length(v_digits) < 10 THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT p.id, p.first_name, p.city, p.neighborhood, p.avatar_url, p.phone_number
+  FROM public.profiles p
+  INNER JOIN auth.users u ON u.id = p.id
+  WHERE p.id <> auth.uid()
+    AND (
+      public.normalize_phone_digits(p.phone_number) = v_digits
+      OR public.normalize_phone_digits(u.phone) = v_digits
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.search_users_by_contact(TEXT) TO authenticated;
 
 -- Top recommendations by city/neighborhood with friend boost
 CREATE OR REPLACE FUNCTION public.get_top_recommendations(

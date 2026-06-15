@@ -202,6 +202,7 @@ export async function updateProfile(data: {
   city?: string;
   neighborhood?: string;
   avatar_url?: string;
+  phone_number?: string;
 }) {
   const supabase = createClient();
   const {
@@ -222,6 +223,39 @@ export async function updateProfile(data: {
   }
   if (data.avatar_url !== undefined) {
     updates.avatar_url = data.avatar_url || null;
+  }
+  if (data.phone_number !== undefined) {
+    updates.phone_number = data.phone_number.trim() || null;
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update(updates)
+    .eq("id", user.id);
+
+  return { error: error?.message };
+}
+
+/** Sync auth phone (and optional name) to profiles after OTP login — non-breaking. */
+export async function syncProfileAfterAuth(options?: { first_name?: string }) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const updates: Record<string, string | null> = {};
+
+  if (user.phone) {
+    updates.phone_number = user.phone;
+  }
+
+  if (options?.first_name?.trim()) {
+    updates.first_name = options.first_name.trim();
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return {};
   }
 
   const { error } = await supabase
