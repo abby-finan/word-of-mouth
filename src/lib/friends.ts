@@ -220,12 +220,52 @@ export async function searchUserByContact(
   return isValidProfile(profile) ? profile : null;
 }
 
+export type ExistingFriendshipStatus = "none" | "accepted" | "pending";
+
+export async function getExistingFriendship(
+  otherUserId: string
+): Promise<ExistingFriendshipStatus> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "none";
+
+  const { data, error } = await supabase
+    .from("friendships")
+    .select("status")
+    .or(
+      `and(requester_id.eq.${user.id},addressee_id.eq.${otherUserId}),and(requester_id.eq.${otherUserId},addressee_id.eq.${user.id})`
+    )
+    .in("status", ["accepted", "pending"])
+    .order("status", { ascending: true })
+    .limit(1);
+
+  if (error) {
+    console.error("[WOM Friends] getExistingFriendship error:", error);
+    return "none";
+  }
+
+  const friendship = data?.[0];
+  if (!friendship) return "none";
+
+  return friendship.status === "accepted" ? "accepted" : "pending";
+}
+
 export async function sendFriendRequest(addresseeId: string) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
+
+  const existing = await getExistingFriendship(addresseeId);
+  if (existing === "accepted") {
+    return { error: "already_friends" };
+  }
+  if (existing === "pending") {
+    return { error: "already_pending" };
+  }
 
   const { error } = await supabase.from("friendships").insert({
     requester_id: user.id,

@@ -8,7 +8,6 @@ import { getCurrentProfile, getCategoryCounts, CATEGORIES } from "@/lib/actions"
 import { getGreeting } from "@/lib/constants";
 import { Profile } from "@/types/database";
 import { RecommendationCategory } from "@/types/database";
-
 export default function HomePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -39,7 +38,7 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
+      <div className="flex items-center justify-center h-64">
         <div className="animate-pulse text-warm-gray-light">Loading...</div>
       </div>
     );
@@ -48,16 +47,16 @@ export default function HomePage() {
   return (
     <>
       <div className="px-5 pt-8 pb-4">
-        <p className="text-sm text-warm-gray">
+        <p className="text-warm-gray text-sm">
           {getGreeting()}
           {profile ? `, ${profile.first_name}` : ""}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-charcoal">
+        <h1 className="text-2xl font-semibold text-charcoal mt-1 tracking-tight">
           Find the people your people trust.
         </h1>
       </div>
 
-      <div className="mb-4 px-5">
+      <div className="px-5 mb-4">
         <div className="relative">
           <Search
             size={18}
@@ -68,7 +67,7 @@ export default function HomePage() {
             placeholder="Search categories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-charcoal/10 bg-white/80 py-3 pl-11 pr-4 text-charcoal placeholder:text-warm-gray-light backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sage/40"
+            className="w-full rounded-xl border border-charcoal/10 bg-white pl-11 pr-4 py-3 text-charcoal placeholder:text-warm-gray-light focus:outline-none focus:ring-2 focus:ring-sage/40"
           />
         </div>
       </div>
@@ -86,14 +85,14 @@ export default function HomePage() {
         </div>
 
         {filtered.length === 0 && (
-          <p className="py-12 text-center text-warm-gray">
+          <p className="text-center text-warm-gray py-12">
             No categories match your search.
           </p>
         )}
 
         {Object.keys(counts).length === 0 && !search && (
-          <div className="mt-8 px-4 text-center">
-            <p className="text-sm leading-relaxed text-warm-gray">
+          <div className="mt-8 text-center px-4">
+            <p className="text-warm-gray text-sm leading-relaxed">
               Add friends and share your recommendations to see trusted providers
               from your network.
             </p>

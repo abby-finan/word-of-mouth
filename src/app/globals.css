@@ -10,9 +10,6 @@
   --color-sage-light: #e8ede4;
   --color-blush: #e8d5d0;
   --color-blush-light: #f5ebe8;
-  --color-sand: #e8e2d9;
-  --color-terracotta: #c9a99a;
-  --color-brand-coral: #e08368;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -28,76 +25,6 @@
 }
 
 @layer utilities {
-  .wom-typography-row {
-    font-family: var(--font-cubao), "Cubao Free Wide", sans-serif;
-    font-weight: 400;
-    font-synthesis: none;
-    color: var(--color-brand-coral);
-    line-height: var(--wom-line-height, 0.67);
-    white-space: nowrap;
-    letter-spacing: -0.03em;
-    text-align: center;
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    padding: 0;
-  }
-
-  .wom-typography-mobile,
-  .wom-typography-desktop {
-    --wom-rows: 6;
-    --wom-line-height: 0.67;
-    --wom-height-size: calc(100dvh / 4.02);
-  }
-
-  /* Mobile WOM */
-  .wom-typography-mobile {
-    padding-inline: 2vw;
-    box-sizing: border-box;
-    --wom-mobile-size: min(calc((100vw - 4vw) / 3.15), var(--wom-height-size));
-  }
-
-  .wom-typography-row-mobile {
-    font-size: var(--wom-mobile-size);
-  }
-
-  .wom-typography-auth .wom-typography-row-mobile {
-    opacity: 0.38;
-  }
-
-  .wom-typography-app .wom-typography-row-mobile {
-    opacity: 0.065;
-  }
-
-  /* Desktop WORD OF MOUTH — width-safe, tight vertical stack */
-  .wom-typography-desktop {
-    padding-inline: 2.5vw;
-    box-sizing: border-box;
-    --wom-desktop-size: min(calc((100vw - 5vw) / 14.5), var(--wom-height-size));
-  }
-
-  .wom-typography-row-desktop {
-    font-size: var(--wom-desktop-size);
-    letter-spacing: -0.035em;
-  }
-
-  .wom-typography-auth .wom-typography-row-desktop {
-    opacity: 0.38;
-  }
-
-  .wom-typography-app .wom-typography-row-desktop {
-    opacity: 0.065;
-  }
-
-  .glass-card {
-    border-radius: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.32);
-    background: rgba(255, 255, 255, 0.22);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 12px 48px rgba(45, 42, 38, 0.04);
-  }
-
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
