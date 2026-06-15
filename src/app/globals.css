@@ -33,7 +33,7 @@
     font-weight: 400;
     font-synthesis: none;
     color: var(--color-brand-coral);
-    line-height: 0.64;
+    line-height: var(--wom-line-height, 0.67);
     white-space: nowrap;
     letter-spacing: -0.03em;
     text-align: center;
@@ -43,11 +43,18 @@
     padding: 0;
   }
 
-  /* Mobile WOM — 6 rows, sized to fit width; rows spread top to bottom */
+  .wom-typography-mobile,
+  .wom-typography-desktop {
+    --wom-rows: 6;
+    --wom-line-height: 0.67;
+    --wom-height-size: calc(100dvh / 4.02);
+  }
+
+  /* Mobile WOM */
   .wom-typography-mobile {
     padding-inline: 2vw;
     box-sizing: border-box;
-    --wom-mobile-size: min(calc((100vw - 4vw) / 3.15), calc(100dvh / 3.84));
+    --wom-mobile-size: min(calc((100vw - 4vw) / 3.15), var(--wom-height-size));
   }
 
   .wom-typography-row-mobile {
@@ -62,11 +69,11 @@
     opacity: 0.065;
   }
 
-  /* Desktop WORD OF MOUTH — 6 rows, full phrase fits within viewport width */
+  /* Desktop WORD OF MOUTH — width-safe, tight vertical stack */
   .wom-typography-desktop {
     padding-inline: 2.5vw;
     box-sizing: border-box;
-    --wom-desktop-size: min(calc((100vw - 5vw) / 14.5), calc(100dvh / 3.84));
+    --wom-desktop-size: min(calc((100vw - 5vw) / 14.5), var(--wom-height-size));
   }
 
   .wom-typography-row-desktop {
@@ -84,11 +91,11 @@
 
   .glass-card {
     border-radius: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.45);
-    background: rgba(255, 255, 255, 0.38);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 12px 48px rgba(45, 42, 38, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 12px 48px rgba(45, 42, 38, 0.04);
   }
 
   .safe-bottom {
