@@ -7,6 +7,7 @@ const UNKNOWN_PROFILE: Profile = {
   id: "",
   first_name: "Unknown user",
   city: null,
+  neighborhood: null,
   avatar_url: null,
   created_at: "",
   updated_at: "",

@@ -158,6 +158,8 @@ export async function deleteRecommendation(category: RecommendationCategory) {
 export async function updateProfile(data: {
   first_name?: string;
   city?: string;
+  neighborhood?: string;
+  avatar_url?: string;
 }) {
   const supabase = createClient();
   const {
@@ -165,12 +167,75 @@ export async function updateProfile(data: {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
+  const updates: Record<string, string | null> = {};
+
+  if (data.first_name !== undefined) {
+    updates.first_name = data.first_name.trim();
+  }
+  if (data.city !== undefined) {
+    updates.city = data.city.trim() || null;
+  }
+  if (data.neighborhood !== undefined) {
+    updates.neighborhood = data.neighborhood.trim() || null;
+  }
+  if (data.avatar_url !== undefined) {
+    updates.avatar_url = data.avatar_url || null;
+  }
+
   const { error } = await supabase
     .from("profiles")
-    .update(data)
+    .update(updates)
     .eq("id", user.id);
 
   return { error: error?.message };
+}
+
+const AVATAR_BUCKET = "avatars";
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+export async function uploadProfileAvatar(
+  file: File
+): Promise<{ url?: string; error?: string }> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+    return { error: "Please upload a JPG, PNG, or WebP image." };
+  }
+
+  if (file.size > MAX_AVATAR_BYTES) {
+    return { error: "Image must be under 5 MB." };
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${user.id}/${Date.now()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .upload(path, file, {
+      upsert: true,
+      contentType: file.type,
+    });
+
+  if (uploadError) {
+    console.error("[WOM Profile] avatar upload error:", uploadError);
+    return { error: uploadError.message };
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+
+  const { error: updateError } = await updateProfile({ avatar_url: publicUrl });
+  if (updateError) {
+    return { error: updateError };
+  }
+
+  return { url: publicUrl };
 }
 
 export async function signOut() {

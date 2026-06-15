@@ -7,7 +7,8 @@ export type RecommendationCategory =
   | "hair_stylist"
   | "handyman"
   | "therapist"
-  | "pet_sitter";
+  | "pet_sitter"
+  | "other";
 
 export type FriendshipStatus = "pending" | "accepted" | "declined";
 
@@ -15,6 +16,7 @@ export interface Profile {
   id: string;
   first_name: string;
   city: string | null;
+  neighborhood: string | null;
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
@@ -109,7 +111,7 @@ export interface Database {
     Functions: {
       search_users_by_email: {
         Args: { search_email: string };
-        Returns: Pick<Profile, "id" | "first_name" | "city" | "avatar_url">[];
+        Returns: Pick<Profile, "id" | "first_name" | "city" | "neighborhood" | "avatar_url">[];
       };
     };
   };

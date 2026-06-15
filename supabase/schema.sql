@@ -9,6 +9,7 @@ CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   first_name TEXT NOT NULL,
   city TEXT,
+  neighborhood TEXT,
   avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
@@ -24,7 +25,8 @@ CREATE TYPE recommendation_category AS ENUM (
   'hair_stylist',
   'handyman',
   'therapist',
-  'pet_sitter'
+  'pet_sitter',
+  'other'
 );
 
 -- Recommendations (one per category per user)

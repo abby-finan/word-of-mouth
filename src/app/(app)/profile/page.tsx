@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, LogOut } from "lucide-react";
+import { Camera, Plus, Pencil, Trash2, LogOut } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,20 +14,26 @@ import {
   upsertRecommendation,
   deleteRecommendation,
   updateProfile,
+  uploadProfileAvatar,
   signOut,
   CATEGORIES,
 } from "@/lib/actions";
 import { getCategoryInfo } from "@/lib/constants";
+import { formatProfileLocation } from "@/lib/location";
 import { Profile, Recommendation, RecommendationCategory } from "@/types/database";
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [editingCategory, setEditingCategory] = useState<RecommendationCategory | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const [profileError, setProfileError] = useState("");
 
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
@@ -37,6 +43,7 @@ export default function ProfilePage() {
 
   const [profileName, setProfileName] = useState("");
   const [profileCity, setProfileCity] = useState("");
+  const [profileNeighborhood, setProfileNeighborhood] = useState("");
 
   async function loadData() {
     const [p, r] = await Promise.all([
@@ -48,6 +55,7 @@ export default function ProfilePage() {
     if (p) {
       setProfileName(p.first_name);
       setProfileCity(p.city || "");
+      setProfileNeighborhood(p.neighborhood || "");
     }
     setLoading(false);
   }
@@ -89,12 +97,44 @@ export default function ProfilePage() {
   }
 
   async function handleSaveProfile() {
-    await updateProfile({
+    setProfileError("");
+
+    const { error } = await updateProfile({
       first_name: profileName.trim(),
-      city: profileCity.trim() || undefined,
+      city: profileCity.trim(),
+      neighborhood: profileNeighborhood.trim(),
     });
+
+    if (error) {
+      setProfileError(error);
+      return;
+    }
+
     setEditingProfile(false);
     await loadData();
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+
+    if (!file) return;
+
+    setAvatarError("");
+    setUploadingAvatar(true);
+
+    const { url, error } = await uploadProfileAvatar(file);
+
+    if (error) {
+      setAvatarError(error);
+    } else if (url) {
+      setProfile((current) =>
+        current ? { ...current, avatar_url: url } : current
+      );
+      await loadData();
+    }
+
+    setUploadingAvatar(false);
   }
 
   async function handleSignOut() {
@@ -112,17 +152,42 @@ export default function ProfilePage() {
   }
 
   const recMap = new Map(recommendations.map((r) => [r.category, r]));
+  const locationLabel = formatProfileLocation(profile);
 
   return (
     <>
       <div className="px-5 pt-8 pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <Avatar
-              name={profile?.first_name || "?"}
-              src={profile?.avatar_url}
-              size="xl"
-            />
+            <div className="relative">
+              <Avatar
+                name={profile?.first_name || "?"}
+                src={profile?.avatar_url}
+                size="xl"
+                className={uploadingAvatar ? "opacity-50" : undefined}
+              />
+              {uploadingAvatar && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-sage border-t-transparent" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 rounded-full bg-charcoal text-white p-2 shadow-sm disabled:opacity-50"
+                aria-label="Upload profile photo"
+              >
+                <Camera size={14} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+            </div>
             <div>
               {editingProfile ? (
                 <div className="space-y-2">
@@ -132,10 +197,18 @@ export default function ProfilePage() {
                     placeholder="First name"
                   />
                   <Input
+                    value={profileNeighborhood}
+                    onChange={(e) => setProfileNeighborhood(e.target.value)}
+                    placeholder="Neighborhood (optional)"
+                  />
+                  <Input
                     value={profileCity}
                     onChange={(e) => setProfileCity(e.target.value)}
                     placeholder="City (optional)"
                   />
+                  {profileError && (
+                    <p className="text-sm text-red-500">{profileError}</p>
+                  )}
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleSaveProfile}>
                       Save
@@ -143,7 +216,13 @@ export default function ProfilePage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setEditingProfile(false)}
+                      onClick={() => {
+                        setEditingProfile(false);
+                        setProfileError("");
+                        setProfileName(profile?.first_name || "");
+                        setProfileCity(profile?.city || "");
+                        setProfileNeighborhood(profile?.neighborhood || "");
+                      }}
                     >
                       Cancel
                     </Button>
@@ -154,8 +233,8 @@ export default function ProfilePage() {
                   <h1 className="text-2xl font-semibold text-charcoal">
                     {profile?.first_name}
                   </h1>
-                  {profile?.city && (
-                    <p className="text-sm text-warm-gray">{profile.city}</p>
+                  {locationLabel && (
+                    <p className="text-sm text-warm-gray">{locationLabel}</p>
                   )}
                   <button
                     onClick={() => setEditingProfile(true)}
@@ -168,6 +247,10 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {avatarError && (
+          <p className="mt-3 text-sm text-red-500">{avatarError}</p>
+        )}
 
         <p className="text-sm text-warm-gray mt-6">
           My trusted people — one recommendation per category
@@ -184,7 +267,11 @@ export default function ProfilePage() {
               label="Provider name"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              placeholder="Mike's Plumbing"
+              placeholder={
+                editingCategory === "other"
+                  ? "Your trusted provider"
+                  : "Mike's Plumbing"
+              }
               required
             />
             <Input

@@ -12,6 +12,7 @@ import {
   unsaveRecommendation,
 } from "@/lib/actions";
 import { Profile, Recommendation } from "@/types/database";
+import { formatProfileLocation } from "@/lib/location";
 
 export default function FriendProfilePage() {
   const params = useParams();
@@ -87,8 +88,10 @@ export default function FriendProfilePage() {
           <h1 className="text-2xl font-semibold text-charcoal mt-3">
             {profile.first_name}&apos;s trusted people
           </h1>
-          {profile.city && (
-            <p className="text-sm text-warm-gray mt-1">{profile.city}</p>
+          {formatProfileLocation(profile) && (
+            <p className="text-sm text-warm-gray mt-1">
+              {formatProfileLocation(profile)}
+            </p>
           )}
         </div>
       </div>

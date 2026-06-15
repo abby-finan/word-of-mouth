@@ -15,6 +15,7 @@ import {
   respondToFriendRequest,
 } from "@/lib/friends";
 import { Profile, Friendship } from "@/types/database";
+import { formatProfileLocation, formatProfileLocationOrFallback } from "@/lib/location";
 
 function displayName(profile?: Profile | null, fallback = "Unknown user") {
   return profile?.first_name?.trim() || fallback;
@@ -179,8 +180,10 @@ export default function FriendsPage() {
                     <p className="font-medium text-charcoal truncate">
                       {requesterName}
                     </p>
-                    {req.requester?.city ? (
-                      <p className="text-sm text-warm-gray">{req.requester.city}</p>
+                    {formatProfileLocation(req.requester) ? (
+                      <p className="text-sm text-warm-gray">
+                        {formatProfileLocation(req.requester)}
+                      </p>
                     ) : isUnknown ? (
                       <p className="text-sm text-warm-gray-light italic">
                         Profile unavailable
@@ -241,7 +244,7 @@ export default function FriendsPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-charcoal">{friendName}</p>
                     <p className="text-sm text-warm-gray">
-                      {friend?.city || "No location set"}
+                      {formatProfileLocationOrFallback(friend)}
                       {recommendationCount > 0 &&
                         ` · ${recommendationCount} recommendation${recommendationCount !== 1 ? "s" : ""}`}
                     </p>

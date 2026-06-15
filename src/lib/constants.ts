@@ -5,6 +5,7 @@ import {
   Flower2,
   Hammer,
   Heart,
+  MoreHorizontal,
   PawPrint,
   Scissors,
   Wrench,
@@ -93,6 +94,14 @@ export const CATEGORIES: CategoryInfo[] = [
     icon: PawPrint,
     color: "text-teal-600",
     bgColor: "bg-teal-50",
+  },
+  {
+    id: "other",
+    label: "Other",
+    pluralLabel: "Other",
+    icon: MoreHorizontal,
+    color: "text-stone-600",
+    bgColor: "bg-stone-50",
   },
 ];
 
