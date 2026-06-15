@@ -11,21 +11,39 @@ interface BackgroundTypographyProps {
   className?: string;
 }
 
-const ROW_COUNTS: Record<BackgroundTypographyVariant, number> = {
+/** Row counts per breakpoint — sizing is driven by CSS custom properties in globals.css */
+const MOBILE_ROW_COUNTS: Record<BackgroundTypographyVariant, number> = {
   auth: 6,
   app: 5,
 };
 
+const DESKTOP_ROW_COUNTS: Record<BackgroundTypographyVariant, number> = {
+  auth: 3,
+  app: 2,
+};
+
+const MOBILE_LABEL = "WOM";
+const DESKTOP_LABEL = "WORD OF MOUTH";
+
 /**
- * Oversized Cubao WOM typography — same treatment on desktop and mobile.
- * Decorative background layer only; never intercepts pointer events.
+ * Decorative Cubao background typography.
+ * Mobile: centered WOM rows. Tablet/desktop: full "WORD OF MOUTH" editorial rows.
  */
 export function BackgroundTypography({
   variant = "app",
   fixed = true,
   className,
 }: BackgroundTypographyProps) {
-  const rowCount = ROW_COUNTS[variant];
+  const mobileRows = MOBILE_ROW_COUNTS[variant];
+  const desktopRows = DESKTOP_ROW_COUNTS[variant];
+  const variantClass =
+    variant === "auth" ? "wom-typography-auth" : "wom-typography-app";
+
+  const stackClass = cn(
+    cubao.className,
+    "flex h-full min-h-[100dvh] w-full flex-col items-center justify-center gap-0",
+    variantClass
+  );
 
   return (
     <div
@@ -36,16 +54,20 @@ export function BackgroundTypography({
         className
       )}
     >
-      <div
-        className={cn(
-          cubao.className,
-          "flex h-full min-h-[100dvh] w-full flex-col items-center justify-center gap-0",
-          variant === "auth" ? "wom-typography-auth" : "wom-typography-app"
-        )}
-      >
-        {Array.from({ length: rowCount }).map((_, i) => (
-          <p key={i} className="wom-typography-row w-full text-center">
-            WOM
+      {/* Mobile — WOM */}
+      <div className={cn(stackClass, "wom-typography-mobile md:hidden")}>
+        {Array.from({ length: mobileRows }).map((_, i) => (
+          <p key={`mobile-${i}`} className="wom-typography-row wom-typography-row-mobile">
+            {MOBILE_LABEL}
+          </p>
+        ))}
+      </div>
+
+      {/* Tablet / desktop — WORD OF MOUTH */}
+      <div className={cn(stackClass, "wom-typography-desktop hidden md:flex")}>
+        {Array.from({ length: desktopRows }).map((_, i) => (
+          <p key={`desktop-${i}`} className="wom-typography-row wom-typography-row-desktop">
+            {DESKTOP_LABEL}
           </p>
         ))}
       </div>
