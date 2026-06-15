@@ -4,13 +4,18 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { RecommendationCard } from "@/components/recommendations/RecommendationCard";
+import { TopRecommendationCard } from "@/components/recommendations/TopRecommendationCard";
 import {
+  getCurrentProfile,
   getFriendRecommendations,
+  getTopRecommendations,
   getSavedRecommendationIds,
   saveRecommendation,
   unsaveRecommendation,
 } from "@/lib/actions";
 import { getCategoryInfo } from "@/lib/constants";
+import { formatProfileLocation } from "@/lib/location";
+import { TopRecommendation } from "@/lib/top-recommendations";
 import { Recommendation, Profile, RecommendationCategory } from "@/types/database";
 
 export default function CategoryDetailPage() {
@@ -19,18 +24,26 @@ export default function CategoryDetailPage() {
   const category = params.category as RecommendationCategory;
   const info = getCategoryInfo(category);
 
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [topRecommendations, setTopRecommendations] = useState<TopRecommendation[]>([]);
   const [recommendations, setRecommendations] = useState<
     (Recommendation & { profile: Profile })[]
   >([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
+  const locationLabel = formatProfileLocation(profile);
+
   useEffect(() => {
     async function load() {
-      const [recs, saved] = await Promise.all([
+      const [currentProfile, top, recs, saved] = await Promise.all([
+        getCurrentProfile(),
+        getTopRecommendations(category),
         getFriendRecommendations(category),
         getSavedRecommendationIds(),
       ]);
+      setProfile(currentProfile);
+      setTopRecommendations(top);
       setRecommendations(recs);
       setSavedIds(saved);
       setLoading(false);
@@ -79,29 +92,65 @@ export default function CategoryDetailPage() {
         </div>
       </div>
 
-      <div className="px-5 space-y-3">
+      <div className="px-5 space-y-8">
         {loading ? (
           <div className="text-center py-12 text-warm-gray-light animate-pulse">
             Loading...
           </div>
-        ) : recommendations.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <p className="text-warm-gray text-sm leading-relaxed">
-              No friends have shared a {info.label.toLowerCase()} yet. Ask your
-              friends to add their trusted {info.label.toLowerCase()}!
-            </p>
-          </div>
         ) : (
-          recommendations.map((rec) => (
-            <RecommendationCard
-              key={rec.id}
-              recommendation={rec}
-              profile={rec.profile}
-              isSaved={savedIds.has(rec.id)}
-              onSave={() => handleSave(rec.id)}
-              onUnsave={() => handleUnsave(rec.id)}
-            />
-          ))
+          <>
+            <section>
+              <h2 className="text-base font-semibold text-charcoal mb-3">
+                From your friends
+              </h2>
+
+              {recommendations.length === 0 ? (
+                <p className="text-sm text-warm-gray leading-relaxed text-center py-8 px-2">
+                  No friends have shared a {info.label.toLowerCase()} yet. Ask
+                  your friends to add their trusted {info.label.toLowerCase()}!
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {recommendations.map((rec) => (
+                    <RecommendationCard
+                      key={rec.id}
+                      recommendation={rec}
+                      profile={rec.profile}
+                      isSaved={savedIds.has(rec.id)}
+                      onSave={() => handleSave(rec.id)}
+                      onUnsave={() => handleUnsave(rec.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {topRecommendations.length > 0 && (
+              <section className="pt-2 border-t border-charcoal/5">
+                <h2 className="text-sm font-medium text-warm-gray mb-1">
+                  From other people in your area
+                </h2>
+                {locationLabel && (
+                  <p className="text-xs text-warm-gray-light mb-3">
+                    Popular in {locationLabel}
+                  </p>
+                )}
+                <div className="space-y-2">
+                  {topRecommendations.map((top) => (
+                    <TopRecommendationCard
+                      key={top.recommendation_id}
+                      top={top}
+                      category={category}
+                      secondary
+                      isSaved={savedIds.has(top.recommendation_id)}
+                      onSave={() => handleSave(top.recommendation_id)}
+                      onUnsave={() => handleUnsave(top.recommendation_id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
     </>

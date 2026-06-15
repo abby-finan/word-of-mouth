@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { Profile, Recommendation, RecommendationCategory } from "@/types/database";
+import { TopRecommendation } from "@/lib/top-recommendations";
 import { CATEGORIES } from "@/lib/constants";
 
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -56,6 +57,47 @@ export async function getFriendRecommendations(
 
   const { data } = await query.order("category");
   return (data ?? []) as (Recommendation & { profile: Profile })[];
+}
+
+export async function getTopRecommendations(
+  category: RecommendationCategory,
+  limit = 5
+): Promise<TopRecommendation[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase.rpc("get_top_recommendations", {
+    p_category: category,
+    p_limit: limit,
+  });
+
+  if (error) {
+    console.error("[WOM Top] get_top_recommendations error:", error);
+    return [];
+  }
+
+  return (data ?? []).map(
+    (row: {
+      provider_name: string;
+      phone: string | null;
+      note: string | null;
+      recommendation_count: number;
+      friend_recommendation_count: number;
+      score: number;
+      recommendation_id: string;
+    }) => ({
+      provider_name: row.provider_name,
+      phone: row.phone ?? null,
+      note: row.note ?? null,
+      recommendation_count: Number(row.recommendation_count ?? 0),
+      friend_recommendation_count: Number(row.friend_recommendation_count ?? 0),
+      score: Number(row.score ?? 0),
+      recommendation_id: row.recommendation_id,
+    })
+  );
 }
 
 export async function getCategoryCounts(): Promise<Record<string, number>> {
