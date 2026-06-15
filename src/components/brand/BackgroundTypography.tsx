@@ -11,8 +11,8 @@ interface BackgroundTypographyProps {
   className?: string;
 }
 
-/** Exactly three decorative rows per breakpoint */
-const ROW_COUNT = 3;
+/** Six decorative rows — fills viewport top to bottom without overlap */
+const ROW_COUNT = 6;
 
 const MOBILE_LABEL = "WOM";
 const DESKTOP_LABEL = "WORD OF MOUTH";

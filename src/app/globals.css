@@ -43,11 +43,11 @@
     padding: 0;
   }
 
-  /* Mobile WOM — 3 rows, no overlap, fills viewport */
+  /* Mobile WOM — 6 rows, no overlap, fills viewport */
   .wom-typography-mobile {
     padding-inline: 0;
     box-sizing: border-box;
-    --wom-mobile-size: min(calc(100vw / 2.72), calc(100dvh / 1.92));
+    --wom-mobile-size: min(calc(100vw / 2.72), calc(100dvh / 3.84));
   }
 
   .wom-typography-row-mobile {
@@ -62,11 +62,11 @@
     opacity: 0.065;
   }
 
-  /* Desktop WORD OF MOUTH — 3 rows, no overlap, fills viewport */
+  /* Desktop WORD OF MOUTH — 6 rows, no overlap, fills viewport */
   .wom-typography-desktop {
     padding-inline: 0;
     box-sizing: border-box;
-    --wom-desktop-size: min(calc(100vw / 7.6), calc(100dvh / 1.92));
+    --wom-desktop-size: min(calc(100vw / 7.6), calc(100dvh / 3.84));
   }
 
   .wom-typography-row-desktop {
@@ -84,11 +84,11 @@
 
   .glass-card {
     border-radius: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.72);
-    background: rgba(255, 255, 255, 0.62);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    box-shadow: 0 12px 48px rgba(45, 42, 38, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.38);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 12px 48px rgba(45, 42, 38, 0.05);
   }
 
   .safe-bottom {
