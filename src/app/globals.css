@@ -33,9 +33,9 @@
     font-weight: 400;
     font-synthesis: none;
     color: var(--color-brand-coral);
-    line-height: 0.72;
+    line-height: 0.64;
     white-space: nowrap;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     text-align: center;
     width: 100%;
     max-width: 100%;
@@ -43,18 +43,22 @@
     padding: 0;
   }
 
-  /* Mobile WOM — sized to fit viewport width so letters are not clipped */
+  .wom-typography-row + .wom-typography-row {
+    margin-top: -0.06em;
+  }
+
+  /* Mobile WOM — max size that fills the viewport edge to edge */
   .wom-typography-mobile {
-    padding-inline: 4vw;
+    padding-inline: 0;
     box-sizing: border-box;
   }
 
   .wom-typography-auth.wom-typography-mobile {
-    --wom-mobile-size: min(calc(100vw / 3.55), calc(100dvh / 4.35));
+    --wom-mobile-size: min(calc(100vw / 2.72), calc(100dvh / 3.85));
   }
 
   .wom-typography-app.wom-typography-mobile {
-    --wom-mobile-size: min(calc(100vw / 3.55), calc(100dvh / 3.65));
+    --wom-mobile-size: min(calc(100vw / 2.72), calc(100dvh / 3.2));
   }
 
   .wom-typography-row-mobile {
@@ -69,23 +73,23 @@
     opacity: 0.065;
   }
 
-  /* Desktop WORD OF MOUTH — spans viewport width, repeats vertically */
+  /* Desktop WORD OF MOUTH — oversized editorial, spans full viewport width */
   .wom-typography-desktop {
-    padding-inline: 3vw;
+    padding-inline: 0;
     box-sizing: border-box;
   }
 
   .wom-typography-auth.wom-typography-desktop {
-    --wom-desktop-size: min(calc(100vw / 11.25), calc(100dvh / 3.35));
+    --wom-desktop-size: min(calc(100vw / 7.6), calc(100dvh / 2.35));
   }
 
   .wom-typography-app.wom-typography-desktop {
-    --wom-desktop-size: min(calc(100vw / 11.75), calc(100dvh / 4.25));
+    --wom-desktop-size: min(calc(100vw / 7.9), calc(100dvh / 1.75));
   }
 
   .wom-typography-row-desktop {
     font-size: var(--wom-desktop-size);
-    letter-spacing: -0.025em;
+    letter-spacing: -0.035em;
   }
 
   .wom-typography-auth .wom-typography-row-desktop {

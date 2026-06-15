@@ -18,8 +18,8 @@ const MOBILE_ROW_COUNTS: Record<BackgroundTypographyVariant, number> = {
 };
 
 const DESKTOP_ROW_COUNTS: Record<BackgroundTypographyVariant, number> = {
-  auth: 3,
-  app: 2,
+  auth: 4,
+  app: 3,
 };
 
 const MOBILE_LABEL = "WOM";
