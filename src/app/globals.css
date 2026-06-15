@@ -43,11 +43,11 @@
     padding: 0;
   }
 
-  /* Mobile WOM — 6 rows, no overlap, fills viewport */
+  /* Mobile WOM — 6 rows, sized to fit width; rows spread top to bottom */
   .wom-typography-mobile {
-    padding-inline: 0;
+    padding-inline: 2vw;
     box-sizing: border-box;
-    --wom-mobile-size: min(calc(100vw / 2.72), calc(100dvh / 3.84));
+    --wom-mobile-size: min(calc((100vw - 4vw) / 3.15), calc(100dvh / 3.84));
   }
 
   .wom-typography-row-mobile {
@@ -62,11 +62,11 @@
     opacity: 0.065;
   }
 
-  /* Desktop WORD OF MOUTH — 6 rows, no overlap, fills viewport */
+  /* Desktop WORD OF MOUTH — 6 rows, full phrase fits within viewport width */
   .wom-typography-desktop {
-    padding-inline: 0;
+    padding-inline: 2.5vw;
     box-sizing: border-box;
-    --wom-desktop-size: min(calc(100vw / 7.6), calc(100dvh / 3.84));
+    --wom-desktop-size: min(calc((100vw - 5vw) / 14.5), calc(100dvh / 3.84));
   }
 
   .wom-typography-row-desktop {

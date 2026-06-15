@@ -31,7 +31,7 @@ export function BackgroundTypography({
 
   const stackClass = cn(
     cubao.className,
-    "flex h-full min-h-[100dvh] w-full flex-col items-center justify-center gap-0",
+    "flex h-full min-h-[100dvh] w-full flex-col items-center justify-between py-[2dvh] gap-0",
     variantClass
   );
 
