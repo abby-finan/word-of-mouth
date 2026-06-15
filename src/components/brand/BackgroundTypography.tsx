@@ -11,16 +11,8 @@ interface BackgroundTypographyProps {
   className?: string;
 }
 
-/** Row counts per breakpoint — sizing is driven by CSS custom properties in globals.css */
-const MOBILE_ROW_COUNTS: Record<BackgroundTypographyVariant, number> = {
-  auth: 6,
-  app: 5,
-};
-
-const DESKTOP_ROW_COUNTS: Record<BackgroundTypographyVariant, number> = {
-  auth: 4,
-  app: 3,
-};
+/** Exactly three decorative rows per breakpoint */
+const ROW_COUNT = 3;
 
 const MOBILE_LABEL = "WOM";
 const DESKTOP_LABEL = "WORD OF MOUTH";
@@ -34,8 +26,6 @@ export function BackgroundTypography({
   fixed = true,
   className,
 }: BackgroundTypographyProps) {
-  const mobileRows = MOBILE_ROW_COUNTS[variant];
-  const desktopRows = DESKTOP_ROW_COUNTS[variant];
   const variantClass =
     variant === "auth" ? "wom-typography-auth" : "wom-typography-app";
 
@@ -56,7 +46,7 @@ export function BackgroundTypography({
     >
       {/* Mobile — WOM */}
       <div className={cn(stackClass, "wom-typography-mobile md:hidden")}>
-        {Array.from({ length: mobileRows }).map((_, i) => (
+        {Array.from({ length: ROW_COUNT }).map((_, i) => (
           <p key={`mobile-${i}`} className="wom-typography-row wom-typography-row-mobile">
             {MOBILE_LABEL}
           </p>
@@ -65,7 +55,7 @@ export function BackgroundTypography({
 
       {/* Tablet / desktop — WORD OF MOUTH */}
       <div className={cn(stackClass, "wom-typography-desktop hidden md:flex")}>
-        {Array.from({ length: desktopRows }).map((_, i) => (
+        {Array.from({ length: ROW_COUNT }).map((_, i) => (
           <p key={`desktop-${i}`} className="wom-typography-row wom-typography-row-desktop">
             {DESKTOP_LABEL}
           </p>

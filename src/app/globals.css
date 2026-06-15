@@ -43,22 +43,11 @@
     padding: 0;
   }
 
-  .wom-typography-row + .wom-typography-row {
-    margin-top: -0.06em;
-  }
-
-  /* Mobile WOM — max size that fills the viewport edge to edge */
+  /* Mobile WOM — 3 rows, no overlap, fills viewport */
   .wom-typography-mobile {
     padding-inline: 0;
     box-sizing: border-box;
-  }
-
-  .wom-typography-auth.wom-typography-mobile {
-    --wom-mobile-size: min(calc(100vw / 2.72), calc(100dvh / 3.85));
-  }
-
-  .wom-typography-app.wom-typography-mobile {
-    --wom-mobile-size: min(calc(100vw / 2.72), calc(100dvh / 3.2));
+    --wom-mobile-size: min(calc(100vw / 2.72), calc(100dvh / 1.92));
   }
 
   .wom-typography-row-mobile {
@@ -73,18 +62,11 @@
     opacity: 0.065;
   }
 
-  /* Desktop WORD OF MOUTH — oversized editorial, spans full viewport width */
+  /* Desktop WORD OF MOUTH — 3 rows, no overlap, fills viewport */
   .wom-typography-desktop {
     padding-inline: 0;
     box-sizing: border-box;
-  }
-
-  .wom-typography-auth.wom-typography-desktop {
-    --wom-desktop-size: min(calc(100vw / 7.6), calc(100dvh / 2.35));
-  }
-
-  .wom-typography-app.wom-typography-desktop {
-    --wom-desktop-size: min(calc(100vw / 7.9), calc(100dvh / 1.75));
+    --wom-desktop-size: min(calc(100vw / 7.6), calc(100dvh / 1.92));
   }
 
   .wom-typography-row-desktop {
