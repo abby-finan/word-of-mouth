@@ -2,6 +2,10 @@
 
 Find the people your people trust.
 
+WOM is a trusted recommendation network where people share the service providers ("their guys") they actually use and trust in real life. Instead of relying on anonymous reviews, WOM lets users discover plumbers, babysitters, landscapers, dog walkers, handymen, hair stylists, and other local service providers through friends, neighbors, and people they personally trust.
+
+The app is built around the idea: "I don't want the highest-rated person on the internet. I want the person my friend would hire again."
+
 A mobile-first web app for discovering trusted local service providers through friends — not anonymous reviews.
 
 ## Stack
@@ -27,6 +31,8 @@ Go to [supabase.com](https://supabase.com) and create a new project.
 ### 3. Run the database schema
 
 In the Supabase SQL Editor, paste and run the contents of `supabase/schema.sql`.
+
+If signup fails with "Database error saving new user", also run `supabase/fix-signup.sql`.
 
 ### 4. Configure environment variables
 
