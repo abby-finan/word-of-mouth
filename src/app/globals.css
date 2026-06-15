@@ -33,17 +33,27 @@
     font-weight: 400;
     font-synthesis: none;
     color: var(--color-brand-coral);
-    line-height: 0.76;
+    line-height: 0.72;
     white-space: nowrap;
     letter-spacing: -0.02em;
-    font-size: clamp(9rem, 34vw, 22rem);
+    text-align: center;
+  }
+
+  .wom-typography-auth {
+    --wom-size: min(48vw, calc(100dvh / 4.35));
   }
 
   .wom-typography-auth .wom-typography-row {
+    font-size: var(--wom-size);
     opacity: 0.38;
   }
 
+  .wom-typography-app {
+    --wom-size: min(44vw, calc(100dvh / 3.65));
+  }
+
   .wom-typography-app .wom-typography-row {
+    font-size: var(--wom-size);
     opacity: 0.065;
   }
 

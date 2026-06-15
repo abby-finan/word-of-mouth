@@ -39,18 +39,12 @@ export function BackgroundTypography({
       <div
         className={cn(
           cubao.className,
-          "flex h-full min-h-screen w-full flex-col items-center justify-center",
+          "flex h-full min-h-[100dvh] w-full flex-col items-center justify-center gap-0",
           variant === "auth" ? "wom-typography-auth" : "wom-typography-app"
         )}
       >
         {Array.from({ length: rowCount }).map((_, i) => (
-          <p
-            key={i}
-            className={cn(
-              "wom-typography-row",
-              i % 2 === 0 ? "-translate-x-[7%]" : "-translate-x-[14%]"
-            )}
-          >
+          <p key={i} className="wom-typography-row w-full text-center">
             WOM
           </p>
         ))}
