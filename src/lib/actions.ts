@@ -78,7 +78,7 @@ export async function getSavedRecommendationIds(): Promise<Set<string>> {
 
   const { data } = await supabase
     .from("saved_recommendations")
-    .select("recommendation_id")
+    .select("*")
     .eq("user_id", user.id);
 
   return new Set((data ?? []).map((s) => s.recommendation_id));

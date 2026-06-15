@@ -177,8 +177,14 @@ export async function getSavedRecommendations(): Promise<
 
   if (!data) return [];
 
-  return data.map((item) => ({
-    ...(item.recommendation as Recommendation & { profile: Profile }),
-    savedId: item.id,
-  }));
+  return data.map((item) => {
+    const recommendation = item.recommendation as unknown as Recommendation & {
+      profile: Profile;
+    };
+
+    return {
+      ...recommendation,
+      savedId: item.id,
+    };
+  });
 }

@@ -71,6 +71,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Omit<Profile, "id">>;
+        Relationships: [];
       };
       recommendations: {
         Row: Recommendation;
@@ -80,6 +81,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Omit<Recommendation, "id" | "user_id">>;
+        Relationships: [];
       };
       friendships: {
         Row: Friendship;
@@ -89,6 +91,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Omit<Friendship, "id">>;
+        Relationships: [];
       };
       saved_recommendations: {
         Row: SavedRecommendation;
@@ -97,6 +100,16 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Omit<SavedRecommendation, "id">>;
+        Relationships: [];
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      search_users_by_email: {
+        Args: { search_email: string };
+        Returns: Pick<Profile, "id" | "first_name" | "city" | "avatar_url">[];
       };
     };
   };

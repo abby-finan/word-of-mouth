@@ -5,11 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { RecommendationCard } from "@/components/recommendations/RecommendationCard";
+import { getFriendProfile } from "@/lib/friends";
 import {
-  getFriendProfile,
   getSavedRecommendationIds,
-} from "@/lib/friends";
-import {
   saveRecommendation,
   unsaveRecommendation,
 } from "@/lib/actions";

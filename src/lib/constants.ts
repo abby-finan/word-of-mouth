@@ -7,7 +7,6 @@ import {
   Heart,
   PawPrint,
   Scissors,
-  Sparkles,
   Wrench,
   Zap,
   type LucideIcon,

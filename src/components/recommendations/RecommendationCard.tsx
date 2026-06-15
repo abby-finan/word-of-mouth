@@ -53,7 +53,11 @@ export function RecommendationCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  isSaved ? onUnsave?.() : onSave?.();
+                  if (isSaved) {
+                    onUnsave?.();
+                  } else {
+                    onSave?.();
+                  }
                 }}
                 className={cn(
                   "flex-shrink-0 p-2 rounded-lg transition-colors",
