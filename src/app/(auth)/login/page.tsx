@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { formatAuthError, logAuthError } from "@/lib/auth-errors";
-import { AuthCard } from "@/components/brand/AuthCard";
 import { BrandBackground } from "@/components/brand/BrandBackground";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -51,17 +50,16 @@ export default function LoginPage() {
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 safe-top safe-bottom">
         <div className="w-full max-w-sm">
-          <AuthCard>
-            <div className="mb-8 text-center">
-              <h1 className="text-3xl font-semibold text-charcoal tracking-tight">
-                Word of Mouth
-              </h1>
-              <p className="mt-2 text-sm text-warm-gray">
-                Find the people your people trust.
-              </p>
-            </div>
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-semibold text-charcoal tracking-tight">
+              Word of Mouth
+            </h1>
+            <p className="mt-2 text-sm text-warm-gray">
+              Find the people your people trust.
+            </p>
+          </div>
 
-            <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
               <Input
                 label="Email"
                 type="email"
@@ -95,13 +93,12 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-warm-gray">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="font-medium text-sage hover:underline">
-                Sign up
-              </Link>
-            </p>
-          </AuthCard>
+          <p className="mt-6 text-center text-sm text-warm-gray">
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="font-medium text-sage hover:underline">
+              Sign up
+            </Link>
+          </p>
         </div>
       </div>
     </div>
