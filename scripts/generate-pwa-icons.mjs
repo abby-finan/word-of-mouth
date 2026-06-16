@@ -9,19 +9,56 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const PUBLIC_DIR = path.join(ROOT, "public");
 const SPLASH_DIR = path.join(PUBLIC_DIR, "splash");
 const FONT_PATH = path.join(PUBLIC_DIR, "fonts", "Cubao-Free-Wide.otf");
+const MASTER_SIZE = 1024;
 
 /** Match BrandBackground: cream bg + Cubao + brand-coral text */
 const BRAND = {
   cream: "#faf9f7",
   coral: "#e3735e",
+  creamRgb: { r: 250, g: 249, b: 247 },
+  coralRgb: { r: 227, g: 115, b: 94 },
 };
 
 const font = opentype.parse(readFileSync(FONT_PATH));
 
-function supersampleScale(targetSize) {
-  if (targetSize <= 32) return 8;
-  if (targetSize <= 180) return 4;
-  return 4;
+function colorDistance(r, g, b, target) {
+  const dr = r - target.r;
+  const dg = g - target.g;
+  const db = b - target.b;
+  return dr * dr + dg * dg + db * db;
+}
+
+/**
+ * Snap every pixel to pure cream or coral — removes anti-aliased halos.
+ */
+async function quantizeBrandColors(buffer, width, height) {
+  const { data, info } = await sharp(buffer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  for (let i = 0; i < data.length; i += info.channels) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const pick =
+      colorDistance(r, g, b, BRAND.creamRgb) <
+      colorDistance(r, g, b, BRAND.coralRgb)
+        ? BRAND.creamRgb
+        : BRAND.coralRgb;
+
+    data[i] = pick.r;
+    data[i + 1] = pick.g;
+    data[i + 2] = pick.b;
+    if (info.channels === 4) data[i + 3] = 255;
+  }
+
+  return sharp(data, {
+    raw: { width, height, channels: info.channels },
+  })
+    .flatten({ background: BRAND.cream })
+    .png({ compressionLevel: 9, adaptiveFiltering: false, palette: false })
+    .toBuffer();
 }
 
 function buildWomSvg(size, { maskable = false } = {}) {
@@ -44,26 +81,32 @@ function buildWomSvg(size, { maskable = false } = {}) {
   bbox = textPath.getBoundingBox();
   textWidth = bbox.x2 - bbox.x1;
   textHeight = bbox.y2 - bbox.y1;
+
   const tx = (size - textWidth) / 2 - bbox.x1;
-  const ty = (size - textHeight) / 2 - bbox.y1;
+  // Optical centering: Cubao cap forms sit visually high in the bbox.
+  const ty = (size - textHeight) / 2 - bbox.y1 - size * 0.014;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <rect width="${size}" height="${size}" fill="${BRAND.cream}"/>
-  <g transform="translate(${tx.toFixed(3)}, ${ty.toFixed(3)})" shape-rendering="geometricPrecision">
-    <path d="${textPath.toPathData(5)}" fill="${BRAND.coral}" shape-rendering="geometricPrecision"/>
+  <g transform="translate(${tx.toFixed(4)}, ${ty.toFixed(4)})">
+    <path d="${textPath.toPathData(5)}" fill="${BRAND.coral}"/>
   </g>
 </svg>`;
 }
 
 async function renderIcon(size, options = {}) {
-  const scale = supersampleScale(size);
-  const renderSize = size * scale;
+  const renderScale = size <= 32 ? 6 : size <= 180 ? 4 : 2;
+  const renderSize = size * renderScale;
   const svg = buildWomSvg(renderSize, options);
 
-  return sharp(Buffer.from(svg), { density: 72 * scale })
-    .png({ compressionLevel: 6, adaptiveFiltering: false })
+  const raster = await sharp(Buffer.from(svg), {
+    density: 72 * renderScale,
+  })
     .resize(size, size, { kernel: sharp.kernel.lanczos3 })
+    .png()
     .toBuffer();
+
+  return quantizeBrandColors(raster, size, size);
 }
 
 async function renderSplash(width, height) {
@@ -85,20 +128,28 @@ async function renderSplash(width, height) {
         left: Math.round((width - iconSize) / 2),
       },
     ])
-    .png({ compressionLevel: 6 })
+    .png({ compressionLevel: 9 })
     .toBuffer();
 }
 
 await mkdir(SPLASH_DIR, { recursive: true });
 
-const rootIcons = [
+const masterSvg = buildWomSvg(MASTER_SIZE);
+await writeFile(path.join(PUBLIC_DIR, "wom-icon-master.svg"), masterSvg);
+await writeFile(path.join(PUBLIC_DIR, "favicon.svg"), masterSvg.replace(
+  `width="${MASTER_SIZE}" height="${MASTER_SIZE}" viewBox="0 0 ${MASTER_SIZE} ${MASTER_SIZE}"`,
+  `viewBox="0 0 ${MASTER_SIZE} ${MASTER_SIZE}"`
+));
+
+const exports = [
+  ["favicon-32x32.png", 32, {}],
   ["icon-192x192.png", 192, {}],
   ["icon-512x512.png", 512, {}],
   ["icon-maskable-512x512.png", 512, { maskable: true }],
   ["apple-touch-icon.png", 180, {}],
 ];
 
-for (const [filename, size, options] of rootIcons) {
+for (const [filename, size, options] of exports) {
   const buffer = await renderIcon(size, options);
   await writeFile(path.join(PUBLIC_DIR, filename), buffer);
 }
@@ -106,8 +157,6 @@ for (const [filename, size, options] of rootIcons) {
 const faviconSizes = [16, 32, 48];
 const faviconPngs = await Promise.all(faviconSizes.map((size) => renderIcon(size)));
 await writeFile(path.join(PUBLIC_DIR, "favicon.ico"), await toIco(faviconPngs));
-
-await writeFile(path.join(PUBLIC_DIR, "favicon.svg"), buildWomSvg(512));
 
 const splashes = [
   ["iphone-se.png", 750, 1334],
@@ -136,4 +185,4 @@ await writeFile(
   JSON.stringify(startupImages, null, 2)
 );
 
-console.log("Generated WOM brand icons with Cubao paths (favicon, PWA, splash).");
+console.log("Generated crisp WOM icons from 1024px master (favicon, PWA, splash).");
