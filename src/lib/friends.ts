@@ -367,11 +367,34 @@ export async function respondToFriendRequest(
 
 export async function removeFriend(friendshipId: string) {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: friendship, error: fetchError } = await supabase
+    .from("friendships")
+    .select("requester_id, addressee_id")
+    .eq("id", friendshipId)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("[WOM Friends] removeFriend fetch error:", fetchError);
+    return { error: fetchError.message };
+  }
+
+  if (!friendship) {
+    return { error: "Friendship not found" };
+  }
+
+  const { requester_id, addressee_id } = friendship;
 
   const { error } = await supabase
     .from("friendships")
     .delete()
-    .eq("id", friendshipId);
+    .or(
+      `and(requester_id.eq.${requester_id},addressee_id.eq.${addressee_id}),and(requester_id.eq.${addressee_id},addressee_id.eq.${requester_id})`
+    );
 
   return { error: error?.message };
 }

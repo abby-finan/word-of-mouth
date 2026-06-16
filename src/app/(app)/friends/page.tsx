@@ -14,6 +14,7 @@ import {
   searchUserByContact,
   sendFriendRequest,
   respondToFriendRequest,
+  removeFriend,
 } from "@/lib/friends";
 import { Profile, Friendship } from "@/types/database";
 import { formatProfileLocation, formatProfileLocationOrFallback } from "@/lib/location";
@@ -37,6 +38,7 @@ export default function FriendsPage() {
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   async function loadData() {
     setLoadError("");
@@ -116,6 +118,26 @@ export default function FriendsPage() {
     } catch (error) {
       console.error("[WOM Friends] handleRespond error:", error);
       setLoadError("Couldn't update that friend request. Please try again.");
+    }
+  }
+
+  async function handleRemoveFriend(friendshipId: string) {
+    setRemovingId(friendshipId);
+    setLoadError("");
+
+    try {
+      const { error } = await removeFriend(friendshipId);
+      if (error) {
+        setLoadError("Couldn't remove that friend. Please try again.");
+        return;
+      }
+
+      await loadData();
+    } catch (error) {
+      console.error("[WOM Friends] handleRemoveFriend error:", error);
+      setLoadError("Couldn't remove that friend. Please try again.");
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -247,29 +269,42 @@ export default function FriendsPage() {
               const friendName = displayName(friend, "Friend");
 
               return (
-                <Card
-                  key={id}
-                  className="p-4 flex items-center gap-3"
-                  onClick={() => {
-                    if (friend?.id) {
-                      router.push(`/friends/${friend.id}`);
-                    }
-                  }}
-                >
-                  <Avatar
-                    name={friendName}
-                    src={friend?.avatar_url}
-                    size="lg"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-charcoal">{friendName}</p>
-                    <p className="text-sm text-warm-gray">
-                      {formatProfileLocationOrFallback(friend)}
-                      {recommendationCount > 0 &&
-                        ` · ${recommendationCount} recommendation${recommendationCount !== 1 ? "s" : ""}`}
-                    </p>
+                <Card key={id} className="overflow-hidden">
+                  <button
+                    type="button"
+                    className="w-full p-4 flex items-center gap-3 text-left hover:bg-cream-dark/40 transition-colors"
+                    onClick={() => {
+                      if (friend?.id) {
+                        router.push(`/friends/${friend.id}`);
+                      }
+                    }}
+                  >
+                    <Avatar
+                      name={friendName}
+                      src={friend?.avatar_url}
+                      size="lg"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-charcoal">{friendName}</p>
+                      <p className="text-sm text-warm-gray">
+                        {formatProfileLocationOrFallback(friend)}
+                        {recommendationCount > 0 &&
+                          ` · ${recommendationCount} recommendation${recommendationCount !== 1 ? "s" : ""}`}
+                      </p>
+                    </div>
+                    <ChevronRight size={18} className="text-warm-gray-light" />
+                  </button>
+                  <div className="border-t border-charcoal/5 px-4 py-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-warm-gray-light hover:text-red-600"
+                      loading={removingId === id}
+                      onClick={() => handleRemoveFriend(id)}
+                    >
+                      Remove friend
+                    </Button>
                   </div>
-                  <ChevronRight size={18} className="text-warm-gray-light" />
                 </Card>
               );
             })}
