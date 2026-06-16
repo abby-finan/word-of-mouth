@@ -8,6 +8,7 @@ import { updateProfile } from "@/lib/actions";
 import {
   formatAuthError,
   getSupabaseConfigStatus,
+  isExistingAccountSignup,
   logAuthError,
 } from "@/lib/auth-errors";
 import { normalizePhoneNumber } from "@/lib/phone";
@@ -84,6 +85,13 @@ export default function SignupPage() {
       if (signUpError) {
         logAuthError("signUp failed", signUpError);
         setError(formatAuthError(signUpError));
+        return;
+      }
+
+      if (isExistingAccountSignup(data)) {
+        setError(
+          "An account with this email already exists. Please sign in instead."
+        );
         return;
       }
 

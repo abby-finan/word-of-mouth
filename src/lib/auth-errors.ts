@@ -20,6 +20,29 @@ export function formatAuthError(error: unknown): string {
 
   if (typeof error === "string") return error;
 
+  if (typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const message =
+      (typeof record.message === "string" && record.message) ||
+      (typeof record.msg === "string" && record.msg) ||
+      (error instanceof Error ? error.message : "");
+
+    if (message) {
+      const lower = message.toLowerCase();
+      if (isRateLimitAuthError(message, record)) {
+        return "Too many signups. Please wait a few minutes and try again.";
+      }
+      if (
+        lower.includes("already registered") ||
+        lower.includes("already exists") ||
+        lower.includes("user already")
+      ) {
+        return "An account with this email already exists. Please sign in instead.";
+      }
+      return message;
+    }
+  }
+
   if (error instanceof Error && error.message) {
     if (isRateLimitAuthError(error.message, error as unknown as Record<string, unknown>)) {
       return "Too many signups. Please wait a few minutes and try again.";
@@ -29,17 +52,6 @@ export function formatAuthError(error: unknown): string {
 
   if (typeof error === "object") {
     const record = error as Record<string, unknown>;
-
-    if (typeof record.message === "string" && record.message) {
-      if (isRateLimitAuthError(record.message, record)) {
-        return "Too many signups. Please wait a few minutes and try again.";
-      }
-      return record.message;
-    }
-
-    if (typeof record.msg === "string" && record.msg) {
-      return record.msg;
-    }
 
     const code = record.code ?? record.error_code ?? record.status;
     const parts = [
@@ -54,6 +66,12 @@ export function formatAuthError(error: unknown): string {
   }
 
   return "An unknown error occurred. Check the browser console for details.";
+}
+
+export function isExistingAccountSignup(data: {
+  user: { identities?: { id: string }[] | null } | null;
+}): boolean {
+  return Boolean(data.user && (!data.user.identities || data.user.identities.length === 0));
 }
 
 export function logAuthError(context: string, error: unknown) {

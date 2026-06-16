@@ -14,11 +14,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setInfo("");
     setLoading(true);
 
     try {
@@ -44,6 +48,35 @@ export default function LoginPage() {
     }
   }
 
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setInfo("");
+    setResetLoading(true);
+
+    try {
+      const supabase = createClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=/reset-password`;
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        { redirectTo }
+      );
+
+      if (resetError) {
+        logAuthError("resetPasswordForEmail failed", resetError);
+        setError(formatAuthError(resetError));
+        return;
+      }
+
+      setInfo("Check your email for a link to reset your password.");
+    } catch (err) {
+      logAuthError("resetPasswordForEmail threw exception", err);
+      setError(formatAuthError(err));
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-cream">
       <BrandBackground variant="auth" />
@@ -59,7 +92,11 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          {showForgotPassword ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <p className="text-sm text-warm-gray">
+                Enter your email and we&apos;ll send you a link to reset your password.
+              </p>
               <Input
                 label="Email"
                 type="email"
@@ -68,15 +105,6 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
-              />
-              <Input
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                autoComplete="current-password"
               />
 
               {error && (
@@ -88,17 +116,91 @@ export default function LoginPage() {
                 </div>
               )}
 
+              {info && (
+                <div className="rounded-xl border border-sage/30 bg-sage-light px-4 py-3 text-sm text-charcoal">
+                  {info}
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" loading={resetLoading}>
+                Send reset link
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setError("");
+                  setInfo("");
+                }}
+                className="w-full text-center text-sm text-warm-gray hover:text-charcoal transition-colors"
+              >
+                Back to sign in
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <Input
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+              />
+              <div>
+                <Input
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(true);
+                    setError("");
+                    setInfo("");
+                  }}
+                  className="mt-2 text-sm text-sage hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              {error && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                >
+                  {error}
+                </div>
+              )}
+
+              {info && (
+                <div className="rounded-xl border border-sage/30 bg-sage-light px-4 py-3 text-sm text-charcoal">
+                  {info}
+                </div>
+              )}
+
               <Button type="submit" className="w-full" loading={loading}>
                 Sign in
               </Button>
             </form>
+          )}
 
-          <p className="mt-6 text-center text-sm text-warm-gray">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="font-medium text-sage hover:underline">
-              Sign up
-            </Link>
-          </p>
+          {!showForgotPassword && (
+            <p className="mt-6 text-center text-sm text-warm-gray">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="font-medium text-sage hover:underline">
+                Sign up
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </div>
