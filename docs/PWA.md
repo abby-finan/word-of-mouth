@@ -9,12 +9,12 @@ Word of Mouth is installable as a Progressive Web App while keeping the same web
 | Web App Manifest | `src/app/manifest.ts` | Tells browsers the app name, icons, colors, and `standalone` display mode |
 | Service worker | Generated at build → `public/sw.js` | Caches static assets and serves an offline fallback |
 | PWA plugin | `next.config.ts` (`@ducanh2912/next-pwa`) | Builds and registers the service worker in production |
-| App icons | `public/icon-*.png`, `public/apple-touch-icon.png`, `public/favicon.*` | Geometric WOM wordmark (coral on cream, clarity-first) |
+| App icons | `public/icon-*.png`, `public/apple-touch-icon.png`, `public/favicon.*` | Cubao WOM wordmark (coral on cream) |
 | Splash screens | `public/splash/` | iOS startup images (cream background + brand icon) |
 | Offline page | `src/app/~offline/page.tsx` | Shown when navigation fails while offline |
 | Install prompt | `src/components/pwa/InstallPrompt.tsx` | Chrome / Android / desktop install banner |
 | iOS install hint | `src/components/pwa/IosInstallHint.tsx` | Safari “Add to Home Screen” guidance |
-| Icon generator | `scripts/generate-pwa-icons.mjs` | Regenerates geometric favicon/PWA/splash assets from `wom-icon-master.svg` |
+| Icon generator | `scripts/generate-pwa-icons.mjs` | Regenerates Cubao favicon/PWA/splash assets from `wom-icon-master.svg` |
 | Middleware update | `src/middleware.ts` | Excludes PWA assets from auth redirects |
 
 ## What Was Not Changed

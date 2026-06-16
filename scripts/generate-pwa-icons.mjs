@@ -1,19 +1,25 @@
 import { mkdir, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import path from "node:path";
+import opentype from "opentype.js";
 import sharp from "sharp";
 import toIco from "to-ico";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const PUBLIC_DIR = path.join(ROOT, "public");
 const SPLASH_DIR = path.join(PUBLIC_DIR, "splash");
+const FONT_PATH = path.join(PUBLIC_DIR, "fonts", "Cubao-Free-Wide.otf");
 const MASTER_SIZE = 1024;
 
+/** Match BrandBackground: cream bg + Cubao + brand-coral text */
 const BRAND = {
   cream: "#faf9f7",
   coral: "#e3735e",
   creamRgb: { r: 250, g: 249, b: 247 },
   coralRgb: { r: 227, g: 115, b: 94 },
 };
+
+const font = opentype.parse(readFileSync(FONT_PATH));
 
 function colorDistance(r, g, b, target) {
   const dr = r - target.r;
@@ -52,93 +58,50 @@ async function quantizeBrandColors(buffer, width, height) {
     .toBuffer();
 }
 
-/**
- * Geometric WOM wordmark — clarity-first, not Cubao.
- * Normalized paths in a 1000×420 box, centered in the canvas.
- */
-function geometricPaths(size, { maskable = false } = {}) {
-  const inset = size * (maskable ? 0.18 : 0.1);
-  const inner = size - inset * 2;
+function buildCubaoSvg(size, { maskable = false } = {}) {
+  const inset = size * (maskable ? 0.16 : 0.07);
+  const maxWidth = size - inset * 2;
+  const maxHeight = size - inset * 2;
+  const letterSpacing = -0.035;
 
-  const stemBoost = size <= 16 ? 1.28 : size <= 32 ? 1.18 : size <= 48 ? 1.08 : 1;
-  const wordW = inner * 0.76;
-  const wordH = inner * 0.5 * Math.min(stemBoost, 1.15);
-  const x0 = (size - wordW) / 2;
-  const y0 = (size - wordH) / 2 - size * 0.012;
+  let fontSize = size * (maskable ? 0.4 : 0.56);
+  let textPath = font.getPath("WOM", 0, 0, fontSize, { letterSpacing });
+  let bbox = textPath.getBoundingBox();
+  let textWidth = bbox.x2 - bbox.x1;
+  let textHeight = bbox.y2 - bbox.y1;
 
-  const gap = wordW * 0.045;
-  const cell = (wordW - gap * 2) / 3;
-  const stem = wordH * 0.24 * stemBoost;
-  const midY = y0 + wordH * 0.56;
+  const scale = Math.min(maxWidth / textWidth, maxHeight / textHeight, 1);
+  fontSize *= scale;
 
-  const wx = x0;
-  const ox = x0 + cell + gap;
-  const mx = x0 + (cell + gap) * 2;
+  textPath = font.getPath("WOM", 0, 0, fontSize, { letterSpacing });
+  bbox = textPath.getBoundingBox();
+  textWidth = bbox.x2 - bbox.x1;
+  textHeight = bbox.y2 - bbox.y1;
 
-  const w = `
-    M ${wx} ${y0 + wordH}
-    L ${wx} ${y0}
-    L ${wx + stem} ${y0}
-    L ${wx + cell * 0.5} ${midY}
-    L ${wx + cell - stem} ${y0}
-    L ${wx + cell} ${y0}
-    L ${wx + cell} ${y0 + wordH}
-    L ${wx + cell - stem} ${y0 + wordH}
-    L ${wx + cell - stem} ${midY + wordH * 0.12}
-    L ${wx + cell * 0.5} ${y0 + wordH}
-    L ${wx + stem} ${midY + wordH * 0.12}
-    L ${wx + stem} ${y0 + wordH}
-    Z`;
-
-  const oOuterR = Math.min(cell, wordH) * 0.46;
-  const oInnerR = oOuterR * (size <= 32 ? 0.38 : 0.42);
-  const ocx = ox + cell * 0.5;
-  const ocy = y0 + wordH * 0.5;
-
-  const o = `
-    M ${ocx - oOuterR} ${ocy}
-    A ${oOuterR} ${oOuterR} 0 1 0 ${ocx + oOuterR} ${ocy}
-    A ${oOuterR} ${oOuterR} 0 1 0 ${ocx - oOuterR} ${ocy}
-    M ${ocx - oInnerR} ${ocy}
-    A ${oInnerR} ${oInnerR} 0 1 1 ${ocx + oInnerR} ${ocy}
-    A ${oInnerR} ${oInnerR} 0 1 1 ${ocx - oInnerR} ${ocy}
-    Z`;
-
-  const m = `
-    M ${mx} ${y0 + wordH}
-    L ${mx} ${y0}
-    L ${mx + stem} ${y0}
-    L ${mx + cell * 0.5} ${y0 + wordH * 0.44}
-    L ${mx + cell - stem} ${y0}
-    L ${mx + cell} ${y0}
-    L ${mx + cell} ${y0 + wordH}
-    L ${mx + cell - stem} ${y0 + wordH}
-    L ${mx + cell - stem} ${y0 + wordH * 0.56}
-    L ${mx + cell * 0.5} ${y0 + wordH}
-    L ${mx + stem} ${y0 + wordH * 0.56}
-    L ${mx + stem} ${y0 + wordH}
-    Z`;
-
-  return `${w} ${o} ${m}`;
-}
-
-function buildIconSvg(size, options = {}) {
-  const paths = geometricPaths(size, options);
+  const tx = (size - textWidth) / 2 - bbox.x1;
+  const ty = (size - textHeight) / 2 - bbox.y1 - size * 0.012;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <rect width="${size}" height="${size}" fill="${BRAND.cream}"/>
-  <path d="${paths}" fill="${BRAND.coral}" fill-rule="evenodd"/>
+  <g transform="translate(${tx.toFixed(4)}, ${ty.toFixed(4)})">
+    <path d="${textPath.toPathData(5)}" fill="${BRAND.coral}"/>
+  </g>
 </svg>`;
 }
 
 async function renderIcon(size, options = {}) {
-  const svg = buildIconSvg(size, options);
+  const renderScale = size <= 48 ? 4 : 2;
+  const renderSize = size * renderScale;
+  const svg = buildCubaoSvg(renderSize, options);
 
-  return quantizeBrandColors(
-    await sharp(Buffer.from(svg)).png().toBuffer(),
-    size,
-    size
-  );
+  const raster = await sharp(Buffer.from(svg), {
+    density: 72 * renderScale,
+  })
+    .resize(size, size, { kernel: sharp.kernel.lanczos3 })
+    .png()
+    .toBuffer();
+
+  return quantizeBrandColors(raster, size, size);
 }
 
 async function renderSplash(width, height) {
@@ -166,7 +129,7 @@ async function renderSplash(width, height) {
 
 await mkdir(SPLASH_DIR, { recursive: true });
 
-const masterSvg = buildIconSvg(MASTER_SIZE);
+const masterSvg = buildCubaoSvg(MASTER_SIZE);
 await writeFile(path.join(PUBLIC_DIR, "wom-icon-master.svg"), masterSvg);
 await writeFile(
   path.join(PUBLIC_DIR, "favicon.svg"),
@@ -218,4 +181,4 @@ await writeFile(
   JSON.stringify(startupImages, null, 2)
 );
 
-console.log("Generated clarity-first geometric WOM icons.");
+console.log("Generated Cubao WOM icons (larger fit, all sizes).");
