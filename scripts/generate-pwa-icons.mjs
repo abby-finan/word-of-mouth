@@ -19,13 +19,25 @@ const BRAND = {
 const font = opentype.parse(readFileSync(FONT_PATH));
 
 function buildWomSvg(size, { maskable = false } = {}) {
-  const fontSize = size * (maskable ? 0.34 : 0.46);
+  const inset = size * (maskable ? 0.18 : 0.14);
+  const maxWidth = size - inset * 2;
+  const maxHeight = size - inset * 2;
   const letterSpacing = -0.035;
+  const safety = 0.92;
 
-  const textPath = font.getPath("WOM", 0, 0, fontSize, { letterSpacing });
-  const bbox = textPath.getBoundingBox();
-  const textWidth = bbox.x2 - bbox.x1;
-  const textHeight = bbox.y2 - bbox.y1;
+  let fontSize = size * (maskable ? 0.36 : 0.48);
+  let textPath = font.getPath("WOM", 0, 0, fontSize, { letterSpacing });
+  let bbox = textPath.getBoundingBox();
+  let textWidth = bbox.x2 - bbox.x1;
+  let textHeight = bbox.y2 - bbox.y1;
+
+  const scale = Math.min(maxWidth / textWidth, maxHeight / textHeight, 1) * safety;
+  fontSize *= scale;
+
+  textPath = font.getPath("WOM", 0, 0, fontSize, { letterSpacing });
+  bbox = textPath.getBoundingBox();
+  textWidth = bbox.x2 - bbox.x1;
+  textHeight = bbox.y2 - bbox.y1;
   const tx = (size - textWidth) / 2 - bbox.x1;
   const ty = (size - textHeight) / 2 - bbox.y1;
 
