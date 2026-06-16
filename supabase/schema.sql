@@ -19,14 +19,28 @@ CREATE TABLE profiles (
 -- Recommendation categories (enum-like)
 CREATE TYPE recommendation_category AS ENUM (
   'plumber',
-  'babysitter',
-  'dog_walker',
   'electrician',
+  'landscaper',
   'lawn_care',
-  'hair_stylist',
+  'painter',
   'handyman',
-  'therapist',
+  'babysitter',
   'pet_sitter',
+  'dog_walker',
+  'elderly_caretaker',
+  'personal_trainer',
+  'therapist',
+  'hair_stylist',
+  'pest_control',
+  'gutter_cleaner',
+  'tree_trimming',
+  'wallpaper_installer',
+  'woodworker',
+  'house_cleaner',
+  'mover',
+  'mechanic',
+  'hvac',
+  'cleaner',
   'other'
 );
 
