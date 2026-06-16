@@ -58,12 +58,12 @@
 
   .brand-bg-auth .brand-bg-row-mobile,
   .brand-bg-auth .brand-bg-desktop-letters {
-    opacity: 0.1;
+    opacity: 0.2;
   }
 
   .brand-bg-app .brand-bg-row-mobile,
   .brand-bg-app .brand-bg-desktop-letters {
-    opacity: 0.08;
+    opacity: 0.1;
   }
 
   .brand-bg-desktop-letters {
