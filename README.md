@@ -88,5 +88,5 @@ Quick commands:
 
 ```bash
 npm run build          # Generates service worker (production only)
-npm run generate:pwa-icons  # Regenerate WOM brand icons (Cubao typography)
+npm run generate:pwa-icons  # Regenerate clarity-first geometric WOM icons
 ```
