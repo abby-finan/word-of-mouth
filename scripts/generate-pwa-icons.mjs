@@ -1,54 +1,56 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import toIco from "to-ico";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const ICONS_DIR = path.join(ROOT, "public", "icons");
-const SPLASH_DIR = path.join(ROOT, "public", "splash");
-const FAVICON = path.join(ROOT, "public", "favicon.svg");
+const PUBLIC_DIR = path.join(ROOT, "public");
+const SPLASH_DIR = path.join(PUBLIC_DIR, "splash");
+const FONT_PATH = path.join(PUBLIC_DIR, "fonts", "Cubao-Free-Wide.otf");
 
 const BRAND = {
   cream: "#faf9f7",
-  sage: "#8b9a7d",
+  terracotta: "#c9a99a",
 };
 
-async function renderIcon(size, { maskable = false } = {}) {
-  const padding = maskable ? Math.round(size * 0.2) : Math.round(size * 0.12);
-  const inner = size - padding * 2;
-  const radius = Math.round(inner * 0.25);
+function buildWomSvg(size, { maskable = false, fontBase64 = null } = {}) {
+  const fontSize = size * (maskable ? 0.34 : 0.46);
+  const letterSpacing = fontSize * -0.035;
+  const fontFace = fontBase64
+    ? `@font-face{font-family:Cubao;src:url(data:font/opentype;base64,${fontBase64}) format("opentype");font-weight:400;font-style:normal;}`
+    : `@font-face{font-family:Cubao;src:url("file://${FONT_PATH.replace(/\\/g, "/")}") format("opentype");font-weight:400;font-style:normal;}`;
 
-  const iconSvg = await readFile(FAVICON, "utf8");
-  const scaledIcon = await sharp(Buffer.from(iconSvg))
-    .resize(inner, inner)
-    .png()
-    .toBuffer();
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+  <rect width="${size}" height="${size}" fill="${BRAND.cream}"/>
+  <defs>
+    <style>
+      ${fontFace}
+      .wom {
+        font-family: Cubao, sans-serif;
+        font-size: ${fontSize}px;
+        font-weight: 400;
+        fill: ${BRAND.terracotta};
+      }
+    </style>
+  </defs>
+  <text
+    x="50%"
+    y="50%"
+    text-anchor="middle"
+    dominant-baseline="central"
+    class="wom"
+    letter-spacing="${letterSpacing}"
+  >WOM</text>
+</svg>`;
+}
 
-  const roundedMask = Buffer.from(
-    `<svg width="${inner}" height="${inner}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${inner}" height="${inner}" rx="${radius}" ry="${radius}" fill="white"/>
-    </svg>`
-  );
-
-  const iconWithRadius = await sharp(scaledIcon)
-    .composite([{ input: roundedMask, blend: "dest-in" }])
-    .png()
-    .toBuffer();
-
-  return sharp({
-    create: {
-      width: size,
-      height: size,
-      channels: 4,
-      background: maskable ? BRAND.sage : BRAND.cream,
-    },
-  })
-    .composite([{ input: iconWithRadius, top: padding, left: padding }])
-    .png()
-    .toBuffer();
+async function renderIcon(size, options = {}) {
+  const svg = buildWomSvg(size, options);
+  return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
 async function renderSplash(width, height) {
-  const iconSize = Math.round(Math.min(width, height) * 0.18);
+  const iconSize = Math.round(Math.min(width, height) * 0.2);
   const icon = await renderIcon(iconSize);
 
   return sharp({
@@ -70,33 +72,52 @@ async function renderSplash(width, height) {
     .toBuffer();
 }
 
-await mkdir(ICONS_DIR, { recursive: true });
+const fontBuffer = await readFile(FONT_PATH);
+const fontBase64 = fontBuffer.toString("base64");
+
 await mkdir(SPLASH_DIR, { recursive: true });
 
-const icons = [
+const rootIcons = [
   ["icon-192x192.png", 192, {}],
   ["icon-512x512.png", 512, {}],
   ["icon-maskable-512x512.png", 512, { maskable: true }],
   ["apple-touch-icon.png", 180, {}],
 ];
 
-for (const [filename, size, options] of icons) {
+for (const [filename, size, options] of rootIcons) {
   const buffer = await renderIcon(size, options);
-  await writeFile(path.join(ICONS_DIR, filename), buffer);
+  await writeFile(path.join(PUBLIC_DIR, filename), buffer);
 }
 
+const faviconSizes = [16, 32, 48];
+const faviconPngs = await Promise.all(faviconSizes.map((size) => renderIcon(size)));
+await writeFile(path.join(PUBLIC_DIR, "favicon.ico"), await toIco(faviconPngs));
+
+await writeFile(
+  path.join(PUBLIC_DIR, "favicon.svg"),
+  buildWomSvg(512, { fontBase64 })
+);
+
 const splashes = [
-  ["iphone-se.png", 750, 1334, "portrait", "(device-width: 375px) and (device-height: 667px)"],
-  ["iphone-12.png", 1170, 2532, "portrait", "(device-width: 390px) and (device-height: 844px)"],
-  ["iphone-14-pro-max.png", 1290, 2796, "portrait", "(device-width: 430px) and (device-height: 932px)"],
+  ["iphone-se.png", 750, 1334],
+  ["iphone-12.png", 1170, 2532],
+  ["iphone-14-pro-max.png", 1290, 2796],
 ];
 
 const startupImages = [];
 
-for (const [filename, width, height, orientation, media] of splashes) {
+for (const [filename, width, height] of splashes) {
   const buffer = await renderSplash(width, height);
   await writeFile(path.join(SPLASH_DIR, filename), buffer);
-  startupImages.push({ filename, media });
+  startupImages.push({
+    filename,
+    media:
+      filename === "iphone-se.png"
+        ? "(device-width: 375px) and (device-height: 667px)"
+        : filename === "iphone-12.png"
+          ? "(device-width: 390px) and (device-height: 844px)"
+          : "(device-width: 430px) and (device-height: 932px)",
+  });
 }
 
 await writeFile(
@@ -104,4 +125,4 @@ await writeFile(
   JSON.stringify(startupImages, null, 2)
 );
 
-console.log("Generated PWA icons and splash screens.");
+console.log("Generated WOM brand icons (favicon, PWA, splash).");

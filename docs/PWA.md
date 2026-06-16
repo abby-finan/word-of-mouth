@@ -9,12 +9,12 @@ Word of Mouth is installable as a Progressive Web App while keeping the same web
 | Web App Manifest | `src/app/manifest.ts` | Tells browsers the app name, icons, colors, and `standalone` display mode |
 | Service worker | Generated at build → `public/sw.js` | Caches static assets and serves an offline fallback |
 | PWA plugin | `next.config.ts` (`@ducanh2912/next-pwa`) | Builds and registers the service worker in production |
-| App icons | `public/icons/` | 192, 512, maskable, and Apple touch icon PNGs |
+| App icons | `public/icon-*.png`, `public/apple-touch-icon.png`, `public/favicon.*` | WOM wordmark in Cubao terracotta on cream |
 | Splash screens | `public/splash/` | iOS startup images (cream background + brand icon) |
 | Offline page | `src/app/~offline/page.tsx` | Shown when navigation fails while offline |
 | Install prompt | `src/components/pwa/InstallPrompt.tsx` | Chrome / Android / desktop install banner |
 | iOS install hint | `src/components/pwa/IosInstallHint.tsx` | Safari “Add to Home Screen” guidance |
-| Icon generator | `scripts/generate-pwa-icons.mjs` | Regenerates icons/splash from `public/favicon.svg` |
+| Icon generator | `scripts/generate-pwa-icons.mjs` | Regenerates all favicon/PWA/splash assets from Cubao font |
 | Middleware update | `src/middleware.ts` | Excludes PWA assets from auth redirects |
 
 ## What Was Not Changed
@@ -60,13 +60,13 @@ Auth sessions continue to work when online after install because cookies and Sup
 
 ## Regenerating Icons
 
-If you update `public/favicon.svg`:
+If you change brand colors or the Cubao font:
 
 ```bash
 npm run generate:pwa-icons
 ```
 
-This updates `public/icons/` and `public/splash/`.
+This updates `public/favicon.ico`, `public/favicon.svg`, `public/apple-touch-icon.png`, `public/icon-*.png`, and `public/splash/`.
 
 ## Testing
 
@@ -109,7 +109,7 @@ These URLs must **not** redirect to `/login`:
 
 - `/manifest.webmanifest`
 - `/sw.js`
-- `/icons/icon-512x512.png`
+   - `/icon-512x512.png`
 
 ### Lighthouse PWA audit
 
@@ -153,7 +153,7 @@ No Supabase or database migration is required for PWA.
 
 This setup is Capacitor-ready:
 
-- Static icons in `public/icons/` can become native app icons
+- Static icons in `public/` can become native app icons
 - The same deployed HTTPS URL can load inside a WebView
 - Manifest metadata aligns with native wrapper configuration
 - No custom routing or auth rewrites needed for a first Capacitor pass

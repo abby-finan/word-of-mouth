@@ -5,7 +5,7 @@ export default function OfflinePage() {
     <div className="min-h-screen bg-cream flex flex-col items-center justify-center px-6 text-center">
       <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-sage-light">
         <Image
-          src="/icons/apple-touch-icon.png"
+          src="/apple-touch-icon.png"
           alt=""
           width={64}
           height={64}
