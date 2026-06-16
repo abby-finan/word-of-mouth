@@ -401,8 +401,15 @@ export async function removeFriend(friendshipId: string) {
 
 export async function getFriendProfile(
   friendId: string
-): Promise<{ profile: Profile; recommendations: Recommendation[] } | null> {
+): Promise<{
+  profile: Profile;
+  recommendations: Recommendation[];
+  friendshipId: string | null;
+} | null> {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: profile, error } = await supabase
     .from("profiles")
@@ -422,9 +429,30 @@ export async function getFriendProfile(
     .eq("user_id", friendId)
     .order("category");
 
+  let friendshipId: string | null = null;
+
+  if (user) {
+    const { data: friendship, error: friendshipError } = await supabase
+      .from("friendships")
+      .select("id")
+      .eq("status", "accepted")
+      .or(
+        `and(requester_id.eq.${user.id},addressee_id.eq.${friendId}),and(requester_id.eq.${friendId},addressee_id.eq.${user.id})`
+      )
+      .limit(1)
+      .maybeSingle();
+
+    if (friendshipError) {
+      console.error("[WOM Friends] getFriendProfile friendship error:", friendshipError);
+    }
+
+    friendshipId = friendship?.id ?? null;
+  }
+
   return {
     profile,
     recommendations: recommendations ?? [],
+    friendshipId,
   };
 }
 

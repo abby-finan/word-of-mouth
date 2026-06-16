@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
 import { RecommendationCard } from "@/components/recommendations/RecommendationCard";
-import { getFriendProfile } from "@/lib/friends";
+import { getFriendProfile, removeFriend } from "@/lib/friends";
 import {
   getSavedRecommendationIds,
   saveRecommendation,
@@ -21,8 +22,11 @@ export default function FriendProfilePage() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [friendshipId, setFriendshipId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -33,6 +37,7 @@ export default function FriendProfilePage() {
       if (data) {
         setProfile(data.profile);
         setRecommendations(data.recommendations);
+        setFriendshipId(data.friendshipId);
       }
       setSavedIds(saved);
       setLoading(false);
@@ -52,6 +57,29 @@ export default function FriendProfilePage() {
       next.delete(id);
       return next;
     });
+  }
+
+  async function handleRemoveFriend() {
+    if (!friendshipId) return;
+
+    setRemoving(true);
+    setRemoveError("");
+
+    try {
+      const { error } = await removeFriend(friendshipId);
+      if (error) {
+        setRemoveError("Couldn't remove that friend. Please try again.");
+        return;
+      }
+
+      router.push("/friends");
+      router.refresh();
+    } catch (error) {
+      console.error("[WOM Friends] handleRemoveFriend error:", error);
+      setRemoveError("Couldn't remove that friend. Please try again.");
+    } finally {
+      setRemoving(false);
+    }
   }
 
   if (loading) {
@@ -116,6 +144,23 @@ export default function FriendProfilePage() {
           ))
         )}
       </div>
+
+      {friendshipId && (
+        <div className="px-5 pt-6 pb-8">
+          {removeError && (
+            <p className="mb-3 text-center text-sm text-red-500">{removeError}</p>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-warm-gray-light hover:text-red-600"
+            loading={removing}
+            onClick={handleRemoveFriend}
+          >
+            Remove friend
+          </Button>
+        </div>
+      )}
     </>
   );
 }
