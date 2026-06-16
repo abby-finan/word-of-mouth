@@ -1,5 +1,7 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import path from "node:path";
+import opentype from "opentype.js";
 import sharp from "sharp";
 import toIco from "to-ico";
 
@@ -8,39 +10,30 @@ const PUBLIC_DIR = path.join(ROOT, "public");
 const SPLASH_DIR = path.join(PUBLIC_DIR, "splash");
 const FONT_PATH = path.join(PUBLIC_DIR, "fonts", "Cubao-Free-Wide.otf");
 
+/** Match BrandBackground: cream bg + Cubao + brand-coral text */
 const BRAND = {
   cream: "#faf9f7",
-  terracotta: "#c9a99a",
+  coral: "#e3735e",
 };
 
-function buildWomSvg(size, { maskable = false, fontBase64 = null } = {}) {
+const font = opentype.parse(readFileSync(FONT_PATH));
+
+function buildWomSvg(size, { maskable = false } = {}) {
   const fontSize = size * (maskable ? 0.34 : 0.46);
-  const letterSpacing = fontSize * -0.035;
-  const fontFace = fontBase64
-    ? `@font-face{font-family:Cubao;src:url(data:font/opentype;base64,${fontBase64}) format("opentype");font-weight:400;font-style:normal;}`
-    : `@font-face{font-family:Cubao;src:url("file://${FONT_PATH.replace(/\\/g, "/")}") format("opentype");font-weight:400;font-style:normal;}`;
+  const letterSpacing = -0.035;
+
+  const textPath = font.getPath("WOM", 0, 0, fontSize, { letterSpacing });
+  const bbox = textPath.getBoundingBox();
+  const textWidth = bbox.x2 - bbox.x1;
+  const textHeight = bbox.y2 - bbox.y1;
+  const tx = (size - textWidth) / 2 - bbox.x1;
+  const ty = (size - textHeight) / 2 - bbox.y1;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <rect width="${size}" height="${size}" fill="${BRAND.cream}"/>
-  <defs>
-    <style>
-      ${fontFace}
-      .wom {
-        font-family: Cubao, sans-serif;
-        font-size: ${fontSize}px;
-        font-weight: 400;
-        fill: ${BRAND.terracotta};
-      }
-    </style>
-  </defs>
-  <text
-    x="50%"
-    y="50%"
-    text-anchor="middle"
-    dominant-baseline="central"
-    class="wom"
-    letter-spacing="${letterSpacing}"
-  >WOM</text>
+  <g transform="translate(${tx.toFixed(2)}, ${ty.toFixed(2)})">
+    <path d="${textPath.toPathData(3)}" fill="${BRAND.coral}"/>
+  </g>
 </svg>`;
 }
 
@@ -72,9 +65,6 @@ async function renderSplash(width, height) {
     .toBuffer();
 }
 
-const fontBuffer = await readFile(FONT_PATH);
-const fontBase64 = fontBuffer.toString("base64");
-
 await mkdir(SPLASH_DIR, { recursive: true });
 
 const rootIcons = [
@@ -93,10 +83,7 @@ const faviconSizes = [16, 32, 48];
 const faviconPngs = await Promise.all(faviconSizes.map((size) => renderIcon(size)));
 await writeFile(path.join(PUBLIC_DIR, "favicon.ico"), await toIco(faviconPngs));
 
-await writeFile(
-  path.join(PUBLIC_DIR, "favicon.svg"),
-  buildWomSvg(512, { fontBase64 })
-);
+await writeFile(path.join(PUBLIC_DIR, "favicon.svg"), buildWomSvg(512));
 
 const splashes = [
   ["iphone-se.png", 750, 1334],
@@ -125,4 +112,4 @@ await writeFile(
   JSON.stringify(startupImages, null, 2)
 );
 
-console.log("Generated WOM brand icons (favicon, PWA, splash).");
+console.log("Generated WOM brand icons with Cubao paths (favicon, PWA, splash).");
