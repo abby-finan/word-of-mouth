@@ -27,6 +27,31 @@ function isValidProfile(profile: Profile | null | undefined): profile is Profile
   return Boolean(profile?.id && profile?.first_name);
 }
 
+/** One row per friend — DB allows both A→B and B→A as separate friendships. */
+function dedupeFriendsByFriendId<
+  T extends { id: string; friend: Profile; created_at: string },
+>(friends: T[]): T[] {
+  const byFriendId = new Map<string, T>();
+
+  for (const entry of friends) {
+    const friendId = entry.friend.id;
+    if (!friendId) continue;
+
+    const existing = byFriendId.get(friendId);
+    if (!existing) {
+      byFriendId.set(friendId, entry);
+      continue;
+    }
+
+    // Keep the older friendship row if duplicates exist in the database.
+    if (entry.created_at < existing.created_at) {
+      byFriendId.set(friendId, entry);
+    }
+  }
+
+  return Array.from(byFriendId.values());
+}
+
 export async function getFriends(): Promise<
   (Friendship & { friend: Profile; recommendationCount: number })[]
 > {
@@ -81,7 +106,7 @@ export async function getFriends(): Promise<
     })
   );
 
-  return friends;
+  return dedupeFriendsByFriendId(friends);
 }
 
 export async function getPendingRequests(): Promise<
@@ -281,12 +306,42 @@ export async function respondToFriendRequest(
 ) {
   const supabase = createClient();
 
+  const { data: friendship, error: fetchError } = await supabase
+    .from("friendships")
+    .select("requester_id, addressee_id")
+    .eq("id", friendshipId)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("[WOM Friends] respondToFriendRequest fetch error:", fetchError);
+    return { error: fetchError.message };
+  }
+
   const { error } = await supabase
     .from("friendships")
     .update({ status: accept ? "accepted" : "declined" })
     .eq("id", friendshipId);
 
-  return { error: error?.message };
+  if (error) {
+    return { error: error.message };
+  }
+
+  if (accept && friendship) {
+    const { requester_id, addressee_id } = friendship;
+    const { error: cleanupError } = await supabase
+      .from("friendships")
+      .delete()
+      .neq("id", friendshipId)
+      .or(
+        `and(requester_id.eq.${requester_id},addressee_id.eq.${addressee_id}),and(requester_id.eq.${addressee_id},addressee_id.eq.${requester_id})`
+      );
+
+    if (cleanupError) {
+      console.error("[WOM Friends] duplicate friendship cleanup error:", cleanupError);
+    }
+  }
+
+  return { error: undefined };
 }
 
 export async function removeFriend(friendshipId: string) {
