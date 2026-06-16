@@ -20,10 +20,11 @@ export const metadata: Metadata = {
   },
   description: APP_DESCRIPTION,
   manifest: "/manifest.webmanifest",
-  // Tab favicons come from src/app/favicon.ico (generated from the same 512px Cubao master
-  // as apple-icon.png and manifest icons). Avoid listing multiple rel=icon sizes here —
-  // browsers pick inconsistently and SVG/192px entries caused tab vs home-screen mismatch.
   icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {

@@ -174,6 +174,10 @@ await writeFile(path.join(PUBLIC_DIR, "favicon.ico"), faviconIco);
 
 await mkdir(APP_DIR, { recursive: true });
 await writeFile(path.join(APP_DIR, "favicon.ico"), faviconIco);
+await writeFile(
+  path.join(APP_DIR, "icon.png"),
+  await scaleMaster(masterPng, 32)
+);
 
 const splashes = [
   ["iphone-se.png", 750, 1334],
