@@ -313,6 +313,27 @@ export async function sendFriendRequest(addresseeId: string) {
     return { error: "already_pending" };
   }
 
+  const { data: priorRequest, error: priorError } = await supabase
+    .from("friendships")
+    .select("id, status")
+    .eq("requester_id", user.id)
+    .eq("addressee_id", addresseeId)
+    .maybeSingle();
+
+  if (priorError) {
+    console.error("[WOM Friends] sendFriendRequest prior row error:", priorError);
+    return { error: priorError.message };
+  }
+
+  if (priorRequest?.status === "declined") {
+    const { error } = await supabase
+      .from("friendships")
+      .update({ status: "pending" })
+      .eq("id", priorRequest.id);
+
+    return { error: error?.message };
+  }
+
   const { error } = await supabase.from("friendships").insert({
     requester_id: user.id,
     addressee_id: addresseeId,
@@ -338,28 +359,39 @@ export async function respondToFriendRequest(
     return { error: fetchError.message };
   }
 
+  if (!friendship) {
+    return { error: "Friendship not found" };
+  }
+
+  if (!accept) {
+    const { error } = await supabase
+      .from("friendships")
+      .delete()
+      .eq("id", friendshipId);
+
+    return { error: error?.message };
+  }
+
   const { error } = await supabase
     .from("friendships")
-    .update({ status: accept ? "accepted" : "declined" })
+    .update({ status: "accepted" })
     .eq("id", friendshipId);
 
   if (error) {
     return { error: error.message };
   }
 
-  if (accept && friendship) {
-    const { requester_id, addressee_id } = friendship;
-    const { error: cleanupError } = await supabase
-      .from("friendships")
-      .delete()
-      .neq("id", friendshipId)
-      .or(
-        `and(requester_id.eq.${requester_id},addressee_id.eq.${addressee_id}),and(requester_id.eq.${addressee_id},addressee_id.eq.${requester_id})`
-      );
+  const { requester_id, addressee_id } = friendship;
+  const { error: cleanupError } = await supabase
+    .from("friendships")
+    .delete()
+    .neq("id", friendshipId)
+    .or(
+      `and(requester_id.eq.${requester_id},addressee_id.eq.${addressee_id}),and(requester_id.eq.${addressee_id},addressee_id.eq.${requester_id})`
+    );
 
-    if (cleanupError) {
-      console.error("[WOM Friends] duplicate friendship cleanup error:", cleanupError);
-    }
+  if (cleanupError) {
+    console.error("[WOM Friends] duplicate friendship cleanup error:", cleanupError);
   }
 
   return { error: undefined };

@@ -93,7 +93,7 @@ export default function FriendsPage() {
       } else if (error) {
         setAddError(
           error.includes("duplicate")
-            ? `${name} is already added as your friend!`
+            ? `A friend request to ${name} is already pending.`
             : error
         );
       } else {
