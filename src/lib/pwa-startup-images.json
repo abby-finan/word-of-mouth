@@ -1,0 +1,14 @@
+[
+  {
+    "filename": "iphone-se.png",
+    "media": "(device-width: 375px) and (device-height: 667px)"
+  },
+  {
+    "filename": "iphone-12.png",
+    "media": "(device-width: 390px) and (device-height: 844px)"
+  },
+  {
+    "filename": "iphone-14-pro-max.png",
+    "media": "(device-width: 430px) and (device-height: 932px)"
+  }
+]

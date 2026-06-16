@@ -77,3 +77,16 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Design
 
 Clean, calm, mobile-first UI with soft neutrals, rounded cards, and generous whitespace. No feeds, comments, reviews, messaging, or booking.
+
+## Progressive Web App (PWA)
+
+WOM can be installed on iPhone, Android, and desktop home screens. The website itself is unchanged — PWA adds a manifest, service worker, icons, and optional install prompts.
+
+See **[docs/PWA.md](docs/PWA.md)** for setup, testing, and deployment details.
+
+Quick commands:
+
+```bash
+npm run build          # Generates service worker (production only)
+npm run generate:pwa-icons  # Regenerate icons from public/favicon.svg
+```

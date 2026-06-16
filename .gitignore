@@ -15,12 +15,24 @@
 /.next/
 /out/
 
+# PWA build artifacts (regenerated on production build)
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
+/public/workbox-*.js.map
+/public/swe-worker-*.js
+/public/swe-worker-*.js.map
+/public/fallback-*.js
+/public/fallback-*.js.map
+
 # production
 /build
 
 # misc
 .DS_Store
 *.pem
+lighthouse-pwa-report*.json
+lighthouse-pwa-report*.html
 
 # debug
 npm-debug.log*
