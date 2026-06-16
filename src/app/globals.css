@@ -12,7 +12,7 @@
   --color-blush-light: #f5ebe8;
   --color-sand: #e8e2d9;
   --color-terracotta: #c9a99a;
-  --color-brand-coral: ##F6DCD1;
+  --color-brand-coral: #f6dcd1;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -29,6 +29,7 @@
 
 @layer utilities {
   /* ── Brand background typography ── */
+  /* Color: edit --color-brand-coral in @theme (line ~15). Strength: opacity below. */
   .brand-bg-row {
     font-family: var(--font-cubao), "Cubao Free Wide", sans-serif;
     font-weight: 400;
