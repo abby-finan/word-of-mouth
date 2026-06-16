@@ -10,10 +10,12 @@ import { Input } from "@/components/ui/Input";
 import {
   getFriends,
   getPendingRequests,
+  getSentRequests,
   getExistingFriendship,
   searchUserByContact,
   sendFriendRequest,
   respondToFriendRequest,
+  cancelFriendRequest,
 } from "@/lib/friends";
 import { Profile, Friendship } from "@/types/database";
 import { formatProfileLocation, formatProfileLocationOrFallback } from "@/lib/location";
@@ -30,6 +32,9 @@ export default function FriendsPage() {
   const [pending, setPending] = useState<
     (Friendship & { requester: Profile })[]
   >([]);
+  const [sent, setSent] = useState<
+    (Friendship & { addressee: Profile })[]
+  >([]);
   const [showAdd, setShowAdd] = useState(false);
   const [contactQuery, setContactQuery] = useState("");
   const [addError, setAddError] = useState("");
@@ -42,14 +47,20 @@ export default function FriendsPage() {
     setLoadError("");
 
     try {
-      const [f, p] = await Promise.all([getFriends(), getPendingRequests()]);
+      const [f, p, s] = await Promise.all([
+        getFriends(),
+        getPendingRequests(),
+        getSentRequests(),
+      ]);
       setFriends(f);
       setPending(p);
+      setSent(s);
     } catch (error) {
       console.error("[WOM Friends] loadData error:", error);
       setLoadError("Couldn't load friends right now. Pull to refresh or try again.");
       setFriends([]);
       setPending([]);
+      setSent([]);
     } finally {
       setLoading(false);
     }
@@ -80,16 +91,23 @@ export default function FriendsPage() {
         return;
       }
 
-      if (existing === "pending") {
-        setAddSuccess(`${name} is already added as your friend!`);
+      if (existing === "pending_sent") {
+        setAddSuccess(`Friend request already sent to ${name}. Waiting for them to accept.`);
+        return;
+      }
+
+      if (existing === "pending_received") {
+        setAddSuccess(`${name} already sent you a friend request — accept it above.`);
         return;
       }
 
       const { error } = await sendFriendRequest(user.id);
       if (error === "already_friends") {
         setAddSuccess(`You're already friends with ${name}!`);
-      } else if (error === "already_pending") {
-        setAddSuccess(`${name} is already added as your friend!`);
+      } else if (error === "already_pending_sent") {
+        setAddSuccess(`Friend request already sent to ${name}. Waiting for them to accept.`);
+      } else if (error === "already_pending_received") {
+        setAddSuccess(`${name} already sent you a friend request — accept it above.`);
       } else if (error) {
         setAddError(
           error.includes("duplicate")
@@ -99,6 +117,7 @@ export default function FriendsPage() {
       } else {
         setAddSuccess(`Friend request sent to ${name}!`);
         setContactQuery("");
+        await loadData();
       }
     } catch (error) {
       console.error("[WOM Friends] handleAddFriend error:", error);
@@ -116,6 +135,21 @@ export default function FriendsPage() {
     } catch (error) {
       console.error("[WOM Friends] handleRespond error:", error);
       setLoadError("Couldn't update that friend request. Please try again.");
+    }
+  }
+
+  async function handleCancelSent(id: string) {
+    try {
+      const { error } = await cancelFriendRequest(id);
+      if (error) {
+        setLoadError("Couldn't cancel that friend request. Please try again.");
+        return;
+      }
+
+      await loadData();
+    } catch (error) {
+      console.error("[WOM Friends] handleCancelSent error:", error);
+      setLoadError("Couldn't cancel that friend request. Please try again.");
     }
   }
 
@@ -232,13 +266,50 @@ export default function FriendsPage() {
         </div>
       )}
 
+      {sent.length > 0 && (
+        <div className="px-5 mb-6">
+          <h2 className="text-sm font-medium text-warm-gray mb-2">
+            Sent requests
+          </h2>
+          <div className="space-y-2">
+            {sent.map((req) => {
+              const addresseeName = displayName(req.addressee, "Friend");
+
+              return (
+                <Card key={req.id} className="p-4 flex items-center gap-3">
+                  <Avatar
+                    name={addresseeName}
+                    src={req.addressee?.avatar_url}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-charcoal truncate">
+                      {addresseeName}
+                    </p>
+                    <p className="text-sm text-warm-gray-light">Pending</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCancelSent(req.id)}
+                  >
+                    Cancel
+                  </Button>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="px-5">
         {friends.length === 0 ? (
           <div className="text-center py-12 px-4">
             <p className="text-warm-gray text-sm leading-relaxed">
               {pending.length > 0
                 ? "Accept a friend request to start seeing their trusted people."
-                : "Add friends to see their trusted service providers. Share your recommendations to unlock theirs."}
+                : sent.length > 0
+                  ? "Waiting for your sent requests to be accepted."
+                  : "Add friends to see their trusted service providers. Share your recommendations to unlock theirs."}
             </p>
           </div>
         ) : (

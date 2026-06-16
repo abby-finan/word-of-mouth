@@ -266,7 +266,11 @@ export async function searchUserByContact(
   return isValidProfile(profile) ? profile : null;
 }
 
-export type ExistingFriendshipStatus = "none" | "accepted" | "pending";
+export type ExistingFriendshipStatus =
+  | "none"
+  | "accepted"
+  | "pending_sent"
+  | "pending_received";
 
 export async function getExistingFriendship(
   otherUserId: string
@@ -279,7 +283,7 @@ export async function getExistingFriendship(
 
   const { data, error } = await supabase
     .from("friendships")
-    .select("status")
+    .select("status, requester_id")
     .or(
       `and(requester_id.eq.${user.id},addressee_id.eq.${otherUserId}),and(requester_id.eq.${otherUserId},addressee_id.eq.${user.id})`
     )
@@ -295,7 +299,10 @@ export async function getExistingFriendship(
   const friendship = data?.[0];
   if (!friendship) return "none";
 
-  return friendship.status === "accepted" ? "accepted" : "pending";
+  if (friendship.status === "accepted") return "accepted";
+  return friendship.requester_id === user.id
+    ? "pending_sent"
+    : "pending_received";
 }
 
 export async function sendFriendRequest(addresseeId: string) {
@@ -309,8 +316,11 @@ export async function sendFriendRequest(addresseeId: string) {
   if (existing === "accepted") {
     return { error: "already_friends" };
   }
-  if (existing === "pending") {
-    return { error: "already_pending" };
+  if (existing === "pending_sent") {
+    return { error: "already_pending_sent" };
+  }
+  if (existing === "pending_received") {
+    return { error: "already_pending_received" };
   }
 
   const { data: priorRequest, error: priorError } = await supabase
@@ -395,6 +405,23 @@ export async function respondToFriendRequest(
   }
 
   return { error: undefined };
+}
+
+export async function cancelFriendRequest(friendshipId: string) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("friendships")
+    .delete()
+    .eq("id", friendshipId)
+    .eq("requester_id", user.id)
+    .eq("status", "pending");
+
+  return { error: error?.message };
 }
 
 export async function removeFriend(friendshipId: string) {
