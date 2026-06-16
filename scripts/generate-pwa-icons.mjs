@@ -18,6 +18,12 @@ const BRAND = {
 
 const font = opentype.parse(readFileSync(FONT_PATH));
 
+function supersampleScale(targetSize) {
+  if (targetSize <= 32) return 8;
+  if (targetSize <= 180) return 4;
+  return 4;
+}
+
 function buildWomSvg(size, { maskable = false } = {}) {
   const inset = size * (maskable ? 0.18 : 0.14);
   const maxWidth = size - inset * 2;
@@ -43,15 +49,21 @@ function buildWomSvg(size, { maskable = false } = {}) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <rect width="${size}" height="${size}" fill="${BRAND.cream}"/>
-  <g transform="translate(${tx.toFixed(2)}, ${ty.toFixed(2)})">
-    <path d="${textPath.toPathData(3)}" fill="${BRAND.coral}"/>
+  <g transform="translate(${tx.toFixed(3)}, ${ty.toFixed(3)})" shape-rendering="geometricPrecision">
+    <path d="${textPath.toPathData(5)}" fill="${BRAND.coral}" shape-rendering="geometricPrecision"/>
   </g>
 </svg>`;
 }
 
 async function renderIcon(size, options = {}) {
-  const svg = buildWomSvg(size, options);
-  return sharp(Buffer.from(svg)).png().toBuffer();
+  const scale = supersampleScale(size);
+  const renderSize = size * scale;
+  const svg = buildWomSvg(renderSize, options);
+
+  return sharp(Buffer.from(svg), { density: 72 * scale })
+    .png({ compressionLevel: 6, adaptiveFiltering: false })
+    .resize(size, size, { kernel: sharp.kernel.lanczos3 })
+    .toBuffer();
 }
 
 async function renderSplash(width, height) {
@@ -73,7 +85,7 @@ async function renderSplash(width, height) {
         left: Math.round((width - iconSize) / 2),
       },
     ])
-    .png()
+    .png({ compressionLevel: 6 })
     .toBuffer();
 }
 

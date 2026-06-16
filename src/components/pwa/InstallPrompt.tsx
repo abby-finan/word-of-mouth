@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Download, X } from "lucide-react";
 
 const DISMISS_KEY = "wom-pwa-install-dismissed";
@@ -10,15 +11,33 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+function isInstalled() {
+  return window.matchMedia("(display-mode: standalone)").matches;
+}
+
 export function InstallPrompt() {
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
+  const inAppShell =
+    pathname.startsWith("/home") ||
+    pathname.startsWith("/friends") ||
+    pathname.startsWith("/saved") ||
+    pathname.startsWith("/profile");
+  const bottomClass = inAppShell
+    ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"
+    : "bottom-[calc(1.5rem+env(safe-area-inset-bottom))]";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
-    if (localStorage.getItem(DISMISS_KEY) === "true") return;
+    if (isInstalled()) return;
+
+    if (localStorage.getItem(DISMISS_KEY) === "true") {
+      localStorage.removeItem(DISMISS_KEY);
+    }
+
+    if (sessionStorage.getItem(DISMISS_KEY) === "true") return;
 
     function handleBeforeInstallPrompt(event: Event) {
       event.preventDefault();
@@ -34,7 +53,7 @@ export function InstallPrompt() {
   }, []);
 
   function dismiss() {
-    localStorage.setItem(DISMISS_KEY, "true");
+    sessionStorage.setItem(DISMISS_KEY, "true");
     setVisible(false);
   }
 
@@ -50,8 +69,8 @@ export function InstallPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 px-4">
-      <div className="mx-auto flex max-w-lg items-start gap-3 rounded-2xl border border-charcoal/10 bg-white p-4 shadow-lg">
+    <div className={`fixed inset-x-0 ${bottomClass} z-50 px-4`}>
+      <div className="mx-auto flex max-w-lg items-start gap-3 rounded-2xl border border-charcoal/10 bg-white p-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sage-light">
           <Download size={18} className="text-sage" />
         </div>
