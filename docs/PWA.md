@@ -66,7 +66,7 @@ If you change brand colors or the Cubao font:
 npm run generate:pwa-icons
 ```
 
-This updates `public/favicon.ico`, `public/apple-touch-icon.png`, `src/app/favicon.ico`, `src/app/icon.png`, `public/icon-*.png`, and `public/splash/`.
+This updates `public/apple-touch-icon.png`, `public/favicon-16x16.png`, `public/favicon-32x32.png`, `src/app/icon.png`, `public/icon-*.png`, and `public/splash/`.
 
 ## Testing
 

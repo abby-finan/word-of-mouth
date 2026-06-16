@@ -1,9 +1,8 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, unlink } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import opentype from "opentype.js";
 import sharp from "sharp";
-import toIco from "to-ico";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const PUBLIC_DIR = path.join(ROOT, "public");
@@ -92,6 +91,21 @@ function buildCubaoSvg(size, { maskable = false } = {}) {
 </svg>`;
 }
 
+async function renderCubaoPng(size, options = {}) {
+  const renderScale = 4;
+  const renderSize = size * renderScale;
+  const svg = buildCubaoSvg(renderSize, options);
+
+  const raster = await sharp(Buffer.from(svg), {
+    density: 72 * renderScale,
+  })
+    .resize(size, size, { kernel: sharp.kernel.lanczos3 })
+    .png()
+    .toBuffer();
+
+  return quantizeBrandColors(raster, size, size);
+}
+
 async function renderCubaoMaster(options = {}) {
   const renderScale = 4;
   const renderSize = MASTER_SIZE * renderScale;
@@ -160,24 +174,21 @@ await writeFile(
 );
 const appleTouchIcon = await scaleMaster(masterPng, 180);
 await writeFile(path.join(PUBLIC_DIR, "apple-touch-icon.png"), appleTouchIcon);
-await writeFile(
-  path.join(PUBLIC_DIR, "favicon-32x32.png"),
-  await scaleMaster(masterPng, 32)
-);
 
-const faviconSizes = [16, 32, 48];
-const faviconPngs = await Promise.all(
-  faviconSizes.map((size) => scaleMaster(masterPng, size))
-);
-const faviconIco = await toIco(faviconPngs);
-await writeFile(path.join(PUBLIC_DIR, "favicon.ico"), faviconIco);
+const favicon16 = await renderCubaoPng(16);
+const favicon32 = await renderCubaoPng(32);
+await writeFile(path.join(PUBLIC_DIR, "favicon-16x16.png"), favicon16);
+await writeFile(path.join(PUBLIC_DIR, "favicon-32x32.png"), favicon32);
 
 await mkdir(APP_DIR, { recursive: true });
-await writeFile(path.join(APP_DIR, "favicon.ico"), faviconIco);
-await writeFile(
-  path.join(APP_DIR, "icon.png"),
-  await scaleMaster(masterPng, 32)
-);
+await writeFile(path.join(APP_DIR, "icon.png"), favicon32);
+
+for (const staleIco of [
+  path.join(PUBLIC_DIR, "favicon.ico"),
+  path.join(APP_DIR, "favicon.ico"),
+]) {
+  await unlink(staleIco).catch(() => {});
+}
 
 const splashes = [
   ["iphone-se.png", 750, 1334],
@@ -208,4 +219,4 @@ await writeFile(
   JSON.stringify(startupImages, null, 2)
 );
 
-console.log("Generated unified Cubao icons from 512px master (tabs + app match).");
+console.log("Generated unified Cubao icons from 512px master (PNG tab icons, no ICO).");
