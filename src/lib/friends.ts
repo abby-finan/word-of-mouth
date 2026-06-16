@@ -162,6 +162,27 @@ export async function getPendingRequests(): Promise<
   return requests;
 }
 
+export async function getPendingRequestCount(): Promise<number> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return 0;
+
+  const { count, error } = await supabase
+    .from("friendships")
+    .select("*", { count: "exact", head: true })
+    .eq("addressee_id", user.id)
+    .eq("status", "pending");
+
+  if (error) {
+    console.error("[WOM Friends] getPendingRequestCount error:", error);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
 export async function getSentRequests(): Promise<
   (Friendship & { addressee: Profile })[]
 > {

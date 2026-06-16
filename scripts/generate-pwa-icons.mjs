@@ -7,9 +7,12 @@ import toIco from "to-ico";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const PUBLIC_DIR = path.join(ROOT, "public");
+const APP_DIR = path.join(ROOT, "src", "app");
 const SPLASH_DIR = path.join(PUBLIC_DIR, "splash");
 const FONT_PATH = path.join(PUBLIC_DIR, "fonts", "Cubao-Free-Wide.otf");
-const MASTER_SIZE = 1024;
+
+/** Single master size — all icons are scaled from this raster for visual consistency. */
+const MASTER_SIZE = 512;
 
 /** Match BrandBackground: cream bg + Cubao + brand-coral text */
 const BRAND = {
@@ -89,24 +92,35 @@ function buildCubaoSvg(size, { maskable = false } = {}) {
 </svg>`;
 }
 
-async function renderIcon(size, options = {}) {
-  const renderScale = size <= 48 ? 4 : 2;
-  const renderSize = size * renderScale;
+async function renderCubaoMaster(options = {}) {
+  const renderScale = 4;
+  const renderSize = MASTER_SIZE * renderScale;
   const svg = buildCubaoSvg(renderSize, options);
 
   const raster = await sharp(Buffer.from(svg), {
     density: 72 * renderScale,
   })
+    .resize(MASTER_SIZE, MASTER_SIZE, { kernel: sharp.kernel.lanczos3 })
+    .png()
+    .toBuffer();
+
+  return quantizeBrandColors(raster, MASTER_SIZE, MASTER_SIZE);
+}
+
+async function scaleMaster(masterPng, size) {
+  if (size === MASTER_SIZE) return masterPng;
+
+  const scaled = await sharp(masterPng)
     .resize(size, size, { kernel: sharp.kernel.lanczos3 })
     .png()
     .toBuffer();
 
-  return quantizeBrandColors(raster, size, size);
+  return quantizeBrandColors(scaled, size, size);
 }
 
-async function renderSplash(width, height) {
+async function renderSplash(width, height, masterPng) {
   const iconSize = Math.round(Math.min(width, height) * 0.2);
-  const icon = await renderIcon(iconSize);
+  const icon = await scaleMaster(masterPng, iconSize);
 
   return sharp({
     create: {
@@ -129,31 +143,37 @@ async function renderSplash(width, height) {
 
 await mkdir(SPLASH_DIR, { recursive: true });
 
+const masterPng = await renderCubaoMaster();
+const maskableMaster = await renderCubaoMaster({ maskable: true });
+
 const masterSvg = buildCubaoSvg(MASTER_SIZE);
 await writeFile(path.join(PUBLIC_DIR, "wom-icon-master.svg"), masterSvg);
+
+await writeFile(path.join(PUBLIC_DIR, "icon-512x512.png"), masterPng);
 await writeFile(
-  path.join(PUBLIC_DIR, "favicon.svg"),
-  masterSvg.replace(
-    `width="${MASTER_SIZE}" height="${MASTER_SIZE}" viewBox="0 0 ${MASTER_SIZE} ${MASTER_SIZE}"`,
-    `viewBox="0 0 ${MASTER_SIZE} ${MASTER_SIZE}"`
-  )
+  path.join(PUBLIC_DIR, "icon-maskable-512x512.png"),
+  maskableMaster
+);
+await writeFile(
+  path.join(PUBLIC_DIR, "icon-192x192.png"),
+  await scaleMaster(masterPng, 192)
+);
+const appleTouchIcon = await scaleMaster(masterPng, 180);
+await writeFile(path.join(PUBLIC_DIR, "apple-touch-icon.png"), appleTouchIcon);
+await writeFile(
+  path.join(PUBLIC_DIR, "favicon-32x32.png"),
+  await scaleMaster(masterPng, 32)
 );
 
-const exports = [
-  ["favicon-32x32.png", 32, {}],
-  ["icon-192x192.png", 192, {}],
-  ["icon-512x512.png", 512, {}],
-  ["icon-maskable-512x512.png", 512, { maskable: true }],
-  ["apple-touch-icon.png", 180, {}],
-];
-
-for (const [filename, size, options] of exports) {
-  await writeFile(path.join(PUBLIC_DIR, filename), await renderIcon(size, options));
-}
-
 const faviconSizes = [16, 32, 48];
-const faviconPngs = await Promise.all(faviconSizes.map((size) => renderIcon(size)));
-await writeFile(path.join(PUBLIC_DIR, "favicon.ico"), await toIco(faviconPngs));
+const faviconPngs = await Promise.all(
+  faviconSizes.map((size) => scaleMaster(masterPng, size))
+);
+const faviconIco = await toIco(faviconPngs);
+await writeFile(path.join(PUBLIC_DIR, "favicon.ico"), faviconIco);
+
+await mkdir(APP_DIR, { recursive: true });
+await writeFile(path.join(APP_DIR, "favicon.ico"), faviconIco);
 
 const splashes = [
   ["iphone-se.png", 750, 1334],
@@ -164,7 +184,10 @@ const splashes = [
 const startupImages = [];
 
 for (const [filename, width, height] of splashes) {
-  await writeFile(path.join(SPLASH_DIR, filename), await renderSplash(width, height));
+  await writeFile(
+    path.join(SPLASH_DIR, filename),
+    await renderSplash(width, height, masterPng)
+  );
   startupImages.push({
     filename,
     media:
@@ -181,4 +204,4 @@ await writeFile(
   JSON.stringify(startupImages, null, 2)
 );
 
-console.log("Generated Cubao WOM icons (larger fit, all sizes).");
+console.log("Generated unified Cubao icons from 512px master (tabs + app match).");

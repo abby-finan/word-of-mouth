@@ -112,6 +112,7 @@ export default function FriendsPage() {
     try {
       await respondToFriendRequest(id, accept);
       await loadData();
+      window.dispatchEvent(new Event("wom:friend-requests-changed"));
     } catch (error) {
       console.error("[WOM Friends] handleRespond error:", error);
       setLoadError("Couldn't update that friend request. Please try again.");
