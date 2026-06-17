@@ -12,6 +12,7 @@ import {
   logAuthError,
 } from "@/lib/auth-errors";
 import { normalizePhoneNumber } from "@/lib/phone";
+import { isPhoneNumberTakenOnAccount } from "@/lib/phone-availability";
 import { BrandBackground } from "@/components/brand/BrandBackground";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -71,6 +72,25 @@ export default function SignupPage() {
 
     try {
       const supabase = createClient();
+
+      const phoneCheck = await isPhoneNumberTakenOnAccount(
+        supabase,
+        normalizedPhone
+      );
+      if (phoneCheck.error) {
+        logAuthError("signup phone check failed", { message: phoneCheck.error });
+        setError(
+          "We couldn't verify that phone number. Please try again in a moment."
+        );
+        return;
+      }
+      if (phoneCheck.taken) {
+        setError(
+          "That phone number is already linked to another account. Try signing in, or use a different number."
+        );
+        return;
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,

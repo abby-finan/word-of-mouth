@@ -89,7 +89,52 @@ CREATE INDEX idx_friendships_requester ON friendships(requester_id);
 CREATE INDEX idx_friendships_addressee ON friendships(addressee_id);
 CREATE INDEX idx_saved_recommendations_user_id ON saved_recommendations(user_id);
 
+CREATE OR REPLACE FUNCTION public.normalize_phone_digits_for_match(phone TEXT)
+RETURNS TEXT
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  WITH digits AS (
+    SELECT NULLIF(regexp_replace(coalesce(phone, ''), '\D', '', 'g'), '') AS d
+  )
+  SELECT CASE
+    WHEN d IS NULL THEN NULL
+    WHEN length(d) = 11 AND left(d, 1) = '1' THEN substring(d FROM 2)
+    WHEN length(d) = 10 THEN d
+    ELSE d
+  END
+  FROM digits;
+$$;
+
 -- Auto-create profile on signup
+CREATE OR REPLACE FUNCTION public.is_phone_number_taken(phone TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_match_digits TEXT;
+BEGIN
+  v_match_digits := public.normalize_phone_digits_for_match(phone);
+  IF v_match_digits IS NULL OR length(v_match_digits) < 10 THEN
+    RETURN false;
+  END IF;
+
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.profiles p
+    WHERE public.normalize_phone_digits_for_match(p.phone_number) = v_match_digits
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_phone_number_taken(TEXT) TO anon, authenticated;
+
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_phone_match_digits_unique
+  ON public.profiles (public.normalize_phone_digits_for_match(phone_number))
+  WHERE phone_number IS NOT NULL;
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -99,24 +144,18 @@ AS $$
 DECLARE
   v_phone TEXT := NULLIF(trim(NEW.raw_user_meta_data->>'phone_number'), '');
 BEGIN
-  BEGIN
-    INSERT INTO public.profiles (id, first_name, phone_number, onboarding_complete)
-    VALUES (
-      NEW.id,
-      COALESCE(NEW.raw_user_meta_data->>'first_name', 'New User'),
-      v_phone,
-      false
-    );
-  EXCEPTION
-    WHEN unique_violation THEN
-      INSERT INTO public.profiles (id, first_name, onboarding_complete)
-      VALUES (
-        NEW.id,
-        COALESCE(NEW.raw_user_meta_data->>'first_name', 'New User'),
-        false
-      )
-      ON CONFLICT (id) DO NOTHING;
-  END;
+  IF v_phone IS NOT NULL AND public.is_phone_number_taken(v_phone) THEN
+    RAISE EXCEPTION 'duplicate_phone_number'
+      USING ERRCODE = '23505';
+  END IF;
+
+  INSERT INTO public.profiles (id, first_name, phone_number, onboarding_complete)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'first_name', 'New User'),
+    v_phone,
+    false
+  );
 
   RETURN NEW;
 END;
@@ -283,23 +322,6 @@ LANGUAGE sql
 IMMUTABLE
 AS $$
   SELECT NULLIF(regexp_replace(coalesce(phone, ''), '\D', '', 'g'), '');
-$$;
-
-CREATE OR REPLACE FUNCTION public.normalize_phone_digits_for_match(phone TEXT)
-RETURNS TEXT
-LANGUAGE sql
-IMMUTABLE
-AS $$
-  WITH digits AS (
-    SELECT NULLIF(regexp_replace(coalesce(phone, ''), '\D', '', 'g'), '') AS d
-  )
-  SELECT CASE
-    WHEN d IS NULL THEN NULL
-    WHEN length(d) = 11 AND left(d, 1) = '1' THEN substring(d FROM 2)
-    WHEN length(d) = 10 THEN d
-    ELSE d
-  END
-  FROM digits;
 $$;
 
 CREATE OR REPLACE FUNCTION public.search_users_by_contact(search_query TEXT)

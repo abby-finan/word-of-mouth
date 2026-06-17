@@ -99,8 +99,10 @@ function isDatabaseSignupError(error: unknown): boolean {
 function isDuplicatePhoneError(error: unknown): boolean {
   const message = getAuthErrorMessage(error).toLowerCase();
   return (
+    message.includes("duplicate_phone_number") ||
     message.includes("profiles_phone_number_unique") ||
-    message.includes("duplicate key value") && message.includes("phone_number")
+    message.includes("profiles_phone_match_digits_unique") ||
+    (message.includes("duplicate key value") && message.includes("phone_number"))
   );
 }
 
