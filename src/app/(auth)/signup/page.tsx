@@ -109,7 +109,7 @@ export default function SignupPage() {
 
       await updateProfile({ phone_number: normalizedPhone });
 
-      router.push("/home");
+      router.push("/onboarding");
       router.refresh();
     } catch (err) {
       logAuthError("signUp threw exception", err);

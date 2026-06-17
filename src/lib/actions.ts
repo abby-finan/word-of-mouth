@@ -184,6 +184,31 @@ export async function upsertRecommendation(
   return { error: error?.message };
 }
 
+export async function completeOnboarding() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { count, error: countError } = await supabase
+    .from("recommendations")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  if (countError) return { error: countError.message };
+  if ((count ?? 0) < 3) {
+    return { error: "Add at least 3 recommendations to continue." };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ onboarding_complete: true })
+    .eq("id", user.id);
+
+  return { error: error?.message };
+}
+
 export async function deleteRecommendation(category: RecommendationCategory) {
   const supabase = createClient();
   const {

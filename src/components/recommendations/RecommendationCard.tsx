@@ -42,11 +42,11 @@ export function RecommendationCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="font-semibold text-charcoal truncate">
                 {recommendation.provider_name}
               </p>
-              <p className="text-sm text-warm-gray">{category.label}</p>
+              <p className="text-sm text-warm-gray truncate">{category.label}</p>
             </div>
 
             {(onSave || onUnsave) && (
@@ -82,13 +82,13 @@ export function RecommendationCard({
           )}
 
           {recommendation.note && (
-            <p className="mt-2 text-sm text-warm-gray leading-relaxed">
+            <p className="mt-2 text-sm text-warm-gray leading-relaxed truncate">
               {recommendation.note}
             </p>
           )}
 
           {recommendation.how_i_know_them && (
-            <p className="mt-1 text-xs text-warm-gray-light italic">
+            <p className="mt-1 text-xs text-warm-gray-light italic truncate">
               {recommendation.how_i_know_them}
             </p>
           )}

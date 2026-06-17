@@ -33,6 +33,7 @@ export interface Profile {
   neighborhood: string | null;
   phone_number: string | null;
   avatar_url: string | null;
+  onboarding_complete: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -7,7 +7,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
+import { RecommendationCategoryForm } from "@/components/recommendations/RecommendationCategoryForm";
 import {
   getCurrentProfile,
   getMyRecommendations,
@@ -18,7 +18,6 @@ import {
   signOut,
   CATEGORIES,
 } from "@/lib/actions";
-import { getCategoryInfo } from "@/lib/constants";
 import { formatProfileLocation } from "@/lib/location";
 import { normalizePhoneNumber } from "@/lib/phone";
 import { Profile, Recommendation, RecommendationCategory } from "@/types/database";
@@ -76,6 +75,10 @@ export default function ProfilePage() {
     setFormHowIKnow(existing?.how_i_know_them || "");
   }
 
+  function closeEdit() {
+    setEditingCategory(null);
+  }
+
   async function handleSaveRecommendation() {
     if (!editingCategory || !formName.trim()) return;
     setFormSaving(true);
@@ -95,6 +98,9 @@ export default function ProfilePage() {
   }
 
   async function handleDelete(category: RecommendationCategory) {
+    if (editingCategory === category) {
+      closeEdit();
+    }
     await deleteRecommendation(category);
     await loadData();
   }
@@ -287,73 +293,11 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      {editingCategory && (
-        <div className="px-5 mb-4">
-          <Card className="p-4 space-y-3">
-            <h3 className="font-medium text-charcoal">
-              {getCategoryInfo(editingCategory).label}
-            </h3>
-            {getCategoryInfo(editingCategory).description && (
-              <p className="text-xs text-warm-gray -mt-1">
-                {getCategoryInfo(editingCategory).description}
-              </p>
-            )}
-            <Input
-              label="Provider name"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder={
-                editingCategory === "other"
-                  ? "e.g. pest control, movers, house cleaner"
-                  : "Mike's Plumbing"
-              }
-              required
-            />
-            <Input
-              label="Phone (optional)"
-              type="tel"
-              value={formPhone}
-              onChange={(e) => setFormPhone(e.target.value)}
-              placeholder="(555) 123-4567"
-            />
-            <Textarea
-              label="Note (optional)"
-              value={formNote}
-              onChange={(e) => setFormNote(e.target.value)}
-              placeholder="Used for 3 years. Super reliable."
-              rows={2}
-            />
-            <Textarea
-              label="How I know them (optional)"
-              value={formHowIKnow}
-              onChange={(e) => setFormHowIKnow(e.target.value)}
-              placeholder="Neighbor recommended them"
-              rows={2}
-            />
-            <div className="flex gap-2 pt-1">
-              <Button
-                size="sm"
-                onClick={handleSaveRecommendation}
-                loading={formSaving}
-              >
-                Save
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setEditingCategory(null)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
       <div className="px-5 space-y-2">
         {CATEGORIES.map((cat) => {
           const rec = recMap.get(cat.id);
           const Icon = cat.icon;
+          const isEditing = editingCategory === cat.id;
 
           return (
             <Card key={cat.id} className="p-4">
@@ -377,13 +321,19 @@ export default function ProfilePage() {
 
                 <div className="flex gap-1">
                   <button
-                    onClick={() => openEdit(cat.id)}
+                    onClick={() => (isEditing ? closeEdit() : openEdit(cat.id))}
                     className="p-2 rounded-lg text-warm-gray hover:text-charcoal hover:bg-cream-dark transition-colors"
                     aria-label={rec ? "Edit" : "Add"}
                   >
-                    {rec ? <Pencil size={16} /> : <Plus size={16} />}
+                    {isEditing ? (
+                      <Pencil size={16} className="text-sage" />
+                    ) : rec ? (
+                      <Pencil size={16} />
+                    ) : (
+                      <Plus size={16} />
+                    )}
                   </button>
-                  {rec && (
+                  {rec && !isEditing && (
                     <button
                       onClick={() => handleDelete(cat.id)}
                       className="p-2 rounded-lg text-warm-gray-light hover:text-red-500 hover:bg-red-50 transition-colors"
@@ -395,8 +345,27 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {rec?.note && (
-                <p className="mt-2 ml-11 text-sm text-warm-gray">{rec.note}</p>
+              {rec?.note && !isEditing && (
+                <p className="mt-2 ml-11 text-sm text-warm-gray truncate">
+                  {rec.note}
+                </p>
+              )}
+
+              {isEditing && (
+                <RecommendationCategoryForm
+                  category={cat.id}
+                  providerName={formName}
+                  phone={formPhone}
+                  note={formNote}
+                  howIKnowThem={formHowIKnow}
+                  onProviderNameChange={setFormName}
+                  onPhoneChange={setFormPhone}
+                  onNoteChange={setFormNote}
+                  onHowIKnowThemChange={setFormHowIKnow}
+                  onSave={handleSaveRecommendation}
+                  onCancel={closeEdit}
+                  saving={formSaving}
+                />
               )}
             </Card>
           );

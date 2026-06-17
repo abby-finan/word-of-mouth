@@ -11,6 +11,7 @@ const UNKNOWN_PROFILE: Profile = {
   neighborhood: null,
   phone_number: null,
   avatar_url: null,
+  onboarding_complete: true,
   created_at: "",
   updated_at: "",
 };
