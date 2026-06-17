@@ -36,6 +36,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/signup");
 
   const isPublicAuthRoute =
+    pathname.startsWith("/auth/confirm") ||
     pathname.startsWith("/auth/callback") ||
     pathname.startsWith("/reset-password");
 

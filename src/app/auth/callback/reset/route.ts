@@ -1,31 +1,15 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 
-/** Password reset emails must land here — Supabase replaces query params when adding `code`. */
+/** Legacy reset callback — forward to the unified confirm route. */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const tokenHash = searchParams.get("token_hash");
-  const type = searchParams.get("type");
+  const url = new URL("/auth/confirm", origin);
+  url.searchParams.set("next", "/reset-password");
 
-  const supabase = await createClient();
-
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}/reset-password`);
-    }
+  for (const key of ["code", "token_hash", "type"]) {
+    const value = searchParams.get(key);
+    if (value) url.searchParams.set(key, value);
   }
 
-  if (tokenHash && type === "recovery") {
-    const { error } = await supabase.auth.verifyOtp({
-      type: "recovery",
-      token_hash: tokenHash,
-    });
-    if (!error) {
-      return NextResponse.redirect(`${origin}/reset-password`);
-    }
-  }
-
-  return NextResponse.redirect(`${origin}/login?error=reset`);
+  return NextResponse.redirect(url.toString());
 }

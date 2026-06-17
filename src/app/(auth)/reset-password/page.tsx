@@ -11,42 +11,43 @@ import { Input } from "@/components/ui/Input";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    async function prepareRecoverySession() {
-      const supabase = createClient();
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
-      const tokenHash = params.get("token_hash");
-      const type = params.get("type");
+    const supabase = createClient();
+    const params = new URLSearchParams(window.location.search);
 
+    if (params.get("error") === "expired") {
+      setError("That reset link is invalid or has expired. Request a new one below.");
+      window.history.replaceState({}, "", "/reset-password");
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" && session) {
+        setSessionReady(true);
+        setCheckingSession(false);
+        setError("");
+      }
+    });
+
+    async function checkSession() {
       try {
-        if (code) {
-          const { error: exchangeError } =
-            await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) {
-            logAuthError("reset-password exchangeCodeForSession failed", exchangeError);
-            setError("This reset link is invalid or has expired. Request a new one.");
-            return;
-          }
-          window.history.replaceState({}, "", "/reset-password");
-        } else if (tokenHash && type === "recovery") {
-          const { error: verifyError } = await supabase.auth.verifyOtp({
-            type: "recovery",
-            token_hash: tokenHash,
-          });
-          if (verifyError) {
-            logAuthError("reset-password verifyOtp failed", verifyError);
-            setError("This reset link is invalid or has expired. Request a new one.");
-            return;
-          }
-          window.history.replaceState({}, "", "/reset-password");
+        const hashParams = new URLSearchParams(
+          window.location.hash.replace(/^#/, "")
+        );
+
+        if (hashParams.has("access_token") && hashParams.get("type") === "recovery") {
+          await new Promise((resolve) => setTimeout(resolve, 250));
         }
 
         const {
@@ -55,19 +56,50 @@ export default function ResetPasswordPage() {
 
         if (session) {
           setSessionReady(true);
-        } else {
-          setError("This reset link is invalid or has expired. Request a new one.");
+        } else if (!params.get("error")) {
+          setError("Open the reset link from your email, or request a new one below.");
         }
       } catch (err) {
-        logAuthError("reset-password session prep failed", err);
-        setError("Couldn't verify your reset link. Please try again.");
+        logAuthError("reset-password session check failed", err);
+        setError("Couldn't verify your reset link. Request a new one below.");
       } finally {
         setCheckingSession(false);
       }
     }
 
-    prepareRecoverySession();
+    checkSession();
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  async function handleResendLink(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setInfo("");
+    setResendLoading(true);
+
+    try {
+      const supabase = createClient();
+      const redirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent("/reset-password")}`;
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        { redirectTo }
+      );
+
+      if (resetError) {
+        logAuthError("reset-password resend failed", resetError);
+        setError(formatAuthError(resetError));
+        return;
+      }
+
+      setInfo("Check your email for a new reset link.");
+    } catch (err) {
+      logAuthError("reset-password resend threw", err);
+      setError(formatAuthError(err));
+    } finally {
+      setResendLoading(false);
+    }
+  }
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
@@ -126,28 +158,16 @@ export default function ResetPasswordPage() {
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-semibold text-charcoal tracking-tight">
-              Set new password
+              {sessionReady ? "Set new password" : "Reset your password"}
             </h1>
             <p className="mt-2 text-sm text-warm-gray">
-              Choose a new password for your account.
+              {sessionReady
+                ? "Choose a new password for your account."
+                : "Request a new link if yours expired."}
             </p>
           </div>
 
-          {!sessionReady ? (
-            <div className="space-y-4 text-center">
-              {error && (
-                <div
-                  role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                >
-                  {error}
-                </div>
-              )}
-              <Link href="/login" className="text-sm font-medium text-sage hover:underline">
-                Back to sign in
-              </Link>
-            </div>
-          ) : (
+          {sessionReady ? (
             <form onSubmit={handleReset} className="space-y-4">
               <Input
                 label="New password"
@@ -183,15 +203,44 @@ export default function ResetPasswordPage() {
                 Update password
               </Button>
             </form>
+          ) : (
+            <form onSubmit={handleResendLink} className="space-y-4">
+              <Input
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+              />
+
+              {error && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                >
+                  {error}
+                </div>
+              )}
+
+              {info && (
+                <div className="rounded-xl border border-sage/30 bg-sage-light px-4 py-3 text-sm text-charcoal">
+                  {info}
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" loading={resendLoading}>
+                Send new reset link
+              </Button>
+            </form>
           )}
 
-          {sessionReady && (
-            <p className="mt-6 text-center text-sm text-warm-gray">
-              <Link href="/login" className="font-medium text-sage hover:underline">
-                Back to sign in
-              </Link>
-            </p>
-          )}
+          <p className="mt-6 text-center text-sm text-warm-gray">
+            <Link href="/login" className="font-medium text-sage hover:underline">
+              Back to sign in
+            </Link>
+          </p>
         </div>
       </div>
     </div>

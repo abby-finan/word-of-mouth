@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { cubao } from "@/lib/fonts/cubao";
 import { PwaInstallPrompts } from "@/components/pwa/PwaInstallPrompts";
+import { AuthRecoveryHandler } from "@/components/auth/AuthRecoveryHandler";
 import "./globals.css";
 
 const inter = Inter({
@@ -69,6 +70,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${cubao.variable} font-sans`}>
+        <AuthRecoveryHandler />
         {children}
         <PwaInstallPrompts />
       </body>

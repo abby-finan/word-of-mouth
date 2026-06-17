@@ -22,7 +22,9 @@ export default function LoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("error") === "reset") {
+      setShowForgotPassword(true);
       setError("That password reset link is invalid or has expired. Request a new one below.");
+      window.history.replaceState({}, "", "/login");
     }
   }, []);
 
@@ -63,7 +65,7 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-      const redirectTo = `${window.location.origin}/auth/callback/reset`;
+      const redirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent("/reset-password")}`;
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
         { redirectTo }
