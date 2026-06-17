@@ -17,6 +17,13 @@ const withPWA = withPWAInit({
     skipWaiting: true,
     clientsClaim: true,
     cleanupOutdatedCaches: true,
+    navigateFallbackDenylist: [
+      /^\/auth\//,
+      /^\/reset-password/,
+      /^\/login/,
+      /^\/signup/,
+      /^\/onboarding/,
+    ],
   },
 });
 

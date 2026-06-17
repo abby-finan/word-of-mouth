@@ -6,7 +6,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
   establishRecoverySession,
+  formatRecoveryLinkError,
   getPasswordResetRedirectUrl,
+  getPkceRecoveryErrorMessage,
+  getRecoveryLinkErrorFromUrl,
+  cleanRecoveryUrl,
 } from "@/lib/auth-recovery";
 import { formatAuthError, logAuthError } from "@/lib/auth-errors";
 import { BrandBackground } from "@/components/brand/BrandBackground";
@@ -27,11 +31,13 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    const params = new URLSearchParams(window.location.search);
 
-    if (params.get("error") === "expired") {
-      setError("That reset link is invalid or has expired. Request a new one below.");
-      window.history.replaceState({}, "", "/reset-password");
+    const linkError = getRecoveryLinkErrorFromUrl();
+    if (linkError) {
+      setError(formatRecoveryLinkError(linkError));
+      cleanRecoveryUrl();
+      setCheckingSession(false);
+      return;
     }
 
     const {
@@ -57,12 +63,19 @@ export default function ResetPasswordPage() {
           return;
         }
 
+        if (result.linkError) {
+          setError(formatRecoveryLinkError(result.linkError));
+          return;
+        }
+
         if (result.hadTokens) {
           logAuthError("reset-password token exchange failed", result.error);
           setError(
-            "That reset link is invalid or has expired. Request a new one below."
+            result.error
+              ? getPkceRecoveryErrorMessage(result.error)
+              : "That reset link is invalid or has expired. Request a new one below."
           );
-        } else if (!params.get("error")) {
+        } else {
           setError("Open the reset link from your email, or request a new one below.");
         }
       } catch (err) {
@@ -124,6 +137,18 @@ export default function ResetPasswordPage() {
 
     try {
       const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user.email) {
+        setError("Your reset session expired. Request a new link below.");
+        setSessionReady(false);
+        return;
+      }
+
+      const accountEmail = session.user.email;
+
       const { error: updateError } = await supabase.auth.updateUser({
         password,
       });
@@ -134,8 +159,23 @@ export default function ResetPasswordPage() {
         return;
       }
 
-      await supabase.auth.signOut();
-      router.push("/login?reset=success");
+      await supabase.auth.signOut({ scope: "global" });
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: accountEmail,
+        password,
+      });
+
+      if (signInError) {
+        logAuthError("post-reset signIn verification failed", signInError);
+        setError(
+          "Your password may not have saved correctly. Try signing in with your new password, or request another reset link below."
+        );
+        setSessionReady(false);
+        return;
+      }
+
+      router.push("/home");
       router.refresh();
     } catch (err) {
       logAuthError("reset password threw exception", err);

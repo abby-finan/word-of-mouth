@@ -27,6 +27,18 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  // token_hash recovery: verify on the server where cookies are set reliably.
+  if (pathname.startsWith("/reset-password")) {
+    const tokenHash = request.nextUrl.searchParams.get("token_hash");
+    const type = request.nextUrl.searchParams.get("type");
+    if (tokenHash && type) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/confirm";
+      url.searchParams.set("next", "/reset-password");
+      return NextResponse.redirect(url);
+    }
+  }
+
   const isLoginPage = pathname.startsWith("/login");
   const isSignupPage = pathname.startsWith("/signup");
   const isOnboardingPage = pathname.startsWith("/onboarding");
