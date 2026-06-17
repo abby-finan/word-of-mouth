@@ -25,10 +25,6 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const pathname = request.nextUrl.pathname;
 
   const isLoginPage = pathname.startsWith("/login");
@@ -39,6 +35,13 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/auth/confirm") ||
     pathname.startsWith("/auth/callback") ||
     pathname.startsWith("/reset-password");
+
+  // Use the local session for routing only. Avoids an Auth API call on every
+  // page view, which can trigger Supabase IP rate limits during normal browsing.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   if (!user) {
     const isPublicPage =
@@ -55,32 +58,30 @@ export async function updateSession(request: NextRequest) {
 
   let onboardingComplete = true;
 
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarding_complete")
-      .eq("id", user.id)
-      .single();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("onboarding_complete")
+    .eq("id", user.id)
+    .single();
 
-    onboardingComplete = profile?.onboarding_complete ?? true;
+  onboardingComplete = profile?.onboarding_complete ?? true;
 
-    if (!onboardingComplete && !isOnboardingPage && !isPublicAuthRoute) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/onboarding";
-      return NextResponse.redirect(url);
-    }
+  if (!onboardingComplete && !isOnboardingPage && !isPublicAuthRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/onboarding";
+    return NextResponse.redirect(url);
+  }
 
-    if (onboardingComplete && isOnboardingPage) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/home";
-      return NextResponse.redirect(url);
-    }
+  if (onboardingComplete && isOnboardingPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/home";
+    return NextResponse.redirect(url);
+  }
 
-    if (isLoginPage || (isSignupPage && onboardingComplete)) {
-      const url = request.nextUrl.clone();
-      url.pathname = onboardingComplete ? "/home" : "/onboarding";
-      return NextResponse.redirect(url);
-    }
+  if (isLoginPage || (isSignupPage && onboardingComplete)) {
+    const url = request.nextUrl.clone();
+    url.pathname = onboardingComplete ? "/home" : "/onboarding";
+    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;

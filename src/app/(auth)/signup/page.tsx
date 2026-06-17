@@ -107,7 +107,15 @@ export default function SignupPage() {
         return;
       }
 
-      await updateProfile({ phone_number: normalizedPhone });
+      const { error: profileError } = await updateProfile({
+        phone_number: normalizedPhone,
+      });
+
+      if (profileError) {
+        logAuthError("signup profile update failed", { message: profileError });
+        setError(formatAuthError({ message: profileError }));
+        return;
+      }
 
       router.push("/onboarding");
       router.refresh();

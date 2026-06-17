@@ -140,8 +140,9 @@ function pngBuffersToIco(pngBuffers) {
   header.writeUInt16LE(1, 2);
   header.writeUInt16LE(count, 4);
 
-  let offset = 6 + count * 16;
-  const parts = [header];
+  let imageOffset = 6 + count * 16;
+  const entries = [];
+  const images = [];
 
   for (const png of pngBuffers) {
     const width = png.readUInt32BE(16);
@@ -152,12 +153,53 @@ function pngBuffersToIco(pngBuffers) {
     entry.writeUInt16LE(1, 4);
     entry.writeUInt16LE(32, 6);
     entry.writeUInt32LE(png.length, 8);
-    entry.writeUInt32LE(offset, 12);
-    parts.push(entry, png);
-    offset += png.length;
+    entry.writeUInt32LE(imageOffset, 12);
+    entries.push(entry);
+    images.push(png);
+    imageOffset += png.length;
   }
 
-  return Buffer.concat(parts);
+  return Buffer.concat([header, ...entries, ...images]);
+}
+
+function verifyIco(icoBuffer, expectedCount) {
+  const count = icoBuffer.readUInt16LE(4);
+  if (count !== expectedCount) {
+    throw new Error(`ICO should contain ${expectedCount} images, found ${count}.`);
+  }
+
+  let imageOffset = 6 + count * 16;
+  for (let index = 0; index < count; index += 1) {
+    const entryOffset = 6 + index * 16;
+    const width = icoBuffer.readUInt8(entryOffset);
+    const height = icoBuffer.readUInt8(entryOffset + 1);
+    const size = icoBuffer.readUInt32LE(entryOffset + 8);
+    const offset = icoBuffer.readUInt32LE(entryOffset + 12);
+
+    if (offset !== imageOffset) {
+      throw new Error(`ICO image ${index} offset mismatch.`);
+    }
+
+    const png = icoBuffer.subarray(offset, offset + size);
+    if (png.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") {
+      throw new Error(`ICO image ${index} is not a PNG.`);
+    }
+
+    const pngWidth = png.readUInt32BE(16);
+    const pngHeight = png.readUInt32BE(20);
+    const dirWidth = width === 0 ? 256 : width;
+    const dirHeight = height === 0 ? 256 : height;
+
+    if (pngWidth !== dirWidth || pngHeight !== dirHeight) {
+      throw new Error(`ICO image ${index} dimensions do not match PNG IHDR.`);
+    }
+
+    imageOffset += size;
+  }
+
+  if (imageOffset !== icoBuffer.length) {
+    throw new Error("ICO file length does not match embedded image data.");
+  }
 }
 
 async function renderSplash(width, height, masterPng) {
@@ -207,10 +249,9 @@ const favicon16 = await renderCubaoPng(16);
 const favicon32 = await renderCubaoPng(32);
 await writeFile(path.join(PUBLIC_DIR, "favicon-16x16.png"), favicon16);
 await writeFile(path.join(PUBLIC_DIR, "favicon-32x32.png"), favicon32);
-await writeFile(
-  path.join(PUBLIC_DIR, "favicon.ico"),
-  pngBuffersToIco([favicon16, favicon32])
-);
+const faviconIco = pngBuffersToIco([favicon16, favicon32]);
+verifyIco(faviconIco, 2);
+await writeFile(path.join(PUBLIC_DIR, "favicon.ico"), faviconIco);
 
 await mkdir(APP_DIR, { recursive: true });
 await writeFile(path.join(APP_DIR, "icon.png"), favicon32);
