@@ -132,6 +132,34 @@ async function scaleMaster(masterPng, size) {
   return quantizeBrandColors(scaled, size, size);
 }
 
+/** Build a valid ICO containing PNG images (Safari desktop expects /favicon.ico). */
+function pngBuffersToIco(pngBuffers) {
+  const count = pngBuffers.length;
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(count, 4);
+
+  let offset = 6 + count * 16;
+  const parts = [header];
+
+  for (const png of pngBuffers) {
+    const width = png.readUInt32BE(16);
+    const height = png.readUInt32BE(20);
+    const entry = Buffer.alloc(16);
+    entry.writeUInt8(width >= 256 ? 0 : width, 0);
+    entry.writeUInt8(height >= 256 ? 0 : height, 1);
+    entry.writeUInt16LE(1, 4);
+    entry.writeUInt16LE(32, 6);
+    entry.writeUInt32LE(png.length, 8);
+    entry.writeUInt32LE(offset, 12);
+    parts.push(entry, png);
+    offset += png.length;
+  }
+
+  return Buffer.concat(parts);
+}
+
 async function renderSplash(width, height, masterPng) {
   const iconSize = Math.round(Math.min(width, height) * 0.2);
   const icon = await scaleMaster(masterPng, iconSize);
@@ -179,14 +207,15 @@ const favicon16 = await renderCubaoPng(16);
 const favicon32 = await renderCubaoPng(32);
 await writeFile(path.join(PUBLIC_DIR, "favicon-16x16.png"), favicon16);
 await writeFile(path.join(PUBLIC_DIR, "favicon-32x32.png"), favicon32);
+await writeFile(
+  path.join(PUBLIC_DIR, "favicon.ico"),
+  pngBuffersToIco([favicon16, favicon32])
+);
 
 await mkdir(APP_DIR, { recursive: true });
 await writeFile(path.join(APP_DIR, "icon.png"), favicon32);
 
-for (const staleIco of [
-  path.join(PUBLIC_DIR, "favicon.ico"),
-  path.join(APP_DIR, "favicon.ico"),
-]) {
+for (const staleIco of [path.join(APP_DIR, "favicon.ico")]) {
   await unlink(staleIco).catch(() => {});
 }
 
@@ -219,4 +248,4 @@ await writeFile(
   JSON.stringify(startupImages, null, 2)
 );
 
-console.log("Generated unified Cubao icons from 512px master (PNG tab icons, no ICO).");
+console.log("Generated unified Cubao icons from 512px master (PNG + ICO tab icons).");
