@@ -1,4 +1,4 @@
-import { mkdir, writeFile, unlink } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import opentype from "opentype.js";
@@ -249,16 +249,17 @@ const favicon16 = await renderCubaoPng(16);
 const favicon32 = await renderCubaoPng(32);
 await writeFile(path.join(PUBLIC_DIR, "favicon-16x16.png"), favicon16);
 await writeFile(path.join(PUBLIC_DIR, "favicon-32x32.png"), favicon32);
-const faviconIco = pngBuffersToIco([favicon16, favicon32]);
-verifyIco(faviconIco, 2);
+
+// Safari uses the FIRST embedded ICO image; Chrome uses the LAST.
+// A multi-size ICO makes one browser always pick the tiny 16px frame (looks broken in Safari).
+// Use a single 32px image so every browser gets the same legible mark.
+const faviconIco = pngBuffersToIco([favicon32]);
+verifyIco(faviconIco, 1);
 await writeFile(path.join(PUBLIC_DIR, "favicon.ico"), faviconIco);
 
 await mkdir(APP_DIR, { recursive: true });
 await writeFile(path.join(APP_DIR, "icon.png"), favicon32);
-
-for (const staleIco of [path.join(APP_DIR, "favicon.ico")]) {
-  await unlink(staleIco).catch(() => {});
-}
+await writeFile(path.join(APP_DIR, "apple-icon.png"), appleTouchIcon);
 
 const splashes = [
   ["iphone-se.png", 750, 1334],
