@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { getPasswordResetRedirectUrl } from "@/lib/auth-recovery";
 import { formatAuthError, logAuthError } from "@/lib/auth-errors";
 import { BrandBackground } from "@/components/brand/BrandBackground";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +25,10 @@ export default function LoginPage() {
     if (params.get("error") === "reset") {
       setShowForgotPassword(true);
       setError("That password reset link is invalid or has expired. Request a new one below.");
+      window.history.replaceState({}, "", "/login");
+    }
+    if (params.get("reset") === "success") {
+      setInfo("Your password was updated. Sign in with your new password.");
       window.history.replaceState({}, "", "/login");
     }
   }, []);
@@ -65,10 +70,9 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-      const redirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent("/reset-password")}`;
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
-        { redirectTo }
+        { redirectTo: getPasswordResetRedirectUrl() }
       );
 
       if (resetError) {

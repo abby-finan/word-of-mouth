@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import {
+  establishRecoverySession,
+  getPasswordResetRedirectUrl,
+} from "@/lib/auth-recovery";
 import { formatAuthError, logAuthError } from "@/lib/auth-errors";
 import { BrandBackground } from "@/components/brand/BrandBackground";
 import { Button } from "@/components/ui/Button";
@@ -33,29 +37,31 @@ export default function ResetPasswordPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" && session) {
+      if (
+        (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") &&
+        session
+      ) {
         setSessionReady(true);
         setCheckingSession(false);
         setError("");
       }
     });
 
-    async function checkSession() {
+    async function initRecoverySession() {
       try {
-        const hashParams = new URLSearchParams(
-          window.location.hash.replace(/^#/, "")
-        );
+        const result = await establishRecoverySession(supabase);
 
-        if (hashParams.has("access_token") && hashParams.get("type") === "recovery") {
-          await new Promise((resolve) => setTimeout(resolve, 250));
+        if (result.ok) {
+          setSessionReady(true);
+          setError("");
+          return;
         }
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (session) {
-          setSessionReady(true);
+        if (result.hadTokens) {
+          logAuthError("reset-password token exchange failed", result.error);
+          setError(
+            "That reset link is invalid or has expired. Request a new one below."
+          );
         } else if (!params.get("error")) {
           setError("Open the reset link from your email, or request a new one below.");
         }
@@ -67,7 +73,7 @@ export default function ResetPasswordPage() {
       }
     }
 
-    checkSession();
+    initRecoverySession();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -80,10 +86,9 @@ export default function ResetPasswordPage() {
 
     try {
       const supabase = createClient();
-      const redirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent("/reset-password")}`;
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
-        { redirectTo }
+        { redirectTo: getPasswordResetRedirectUrl() }
       );
 
       if (resetError) {
@@ -129,7 +134,8 @@ export default function ResetPasswordPage() {
         return;
       }
 
-      router.push("/home");
+      await supabase.auth.signOut();
+      router.push("/login?reset=success");
       router.refresh();
     } catch (err) {
       logAuthError("reset password threw exception", err);
